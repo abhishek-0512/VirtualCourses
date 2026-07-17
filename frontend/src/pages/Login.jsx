@@ -1,33 +1,110 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { IoEye, IoEyeOutline } from "react-icons/io5";
 import logo from "../assets/logo.jpg";
 import google from "../assets/google.jpg";
+import axios from "axios";
+import { serverUrl } from "../App";
+import {
+  MdOutlineRemoveRedEye,
+  MdRemoveRedEye,
+} from "react-icons/md";
+import { useNavigate } from "react-router-dom";
+import { signInWithPopup } from "firebase/auth";
+import { auth, provider } from "../utils/Firebase";
+import { toast } from "react-toastify";
+import { ClipLoader } from "react-spinners";
+import { useDispatch } from "react-redux";
+import { setUserData } from "../redux/userSlice"; // Update path if needed
 
-const Login = () => {
-  const [show, setShow] = useState(false);
+function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const [show, setShow] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    setLoading(true);
+
+    try {
+      const result = await axios.post(
+        serverUrl + "/api/auth/login",
+        {
+          email,
+          password,
+        },
+        {
+          withCredentials: true,
+        }
+      );
+
+      // Store user data in Redux
+      dispatch(setUserData(result.data.user || result.data));
+
+      toast.success("Login Successfully");
+      navigate("/");
+    } catch (error) {
+      console.log(error);
+      toast.error(error.response?.data?.message || "Login Failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const googleLogin = async () => {
+    try {
+      const response = await signInWithPopup(auth, provider);
+
+      const user = response.user;
+
+      const name = user.displayName;
+      const email = user.email;
+      const role = "";
+
+      const result = await axios.post(
+        serverUrl + "/api/auth/googlesignup",
+        {
+          name,
+          email,
+          role,
+        },
+        {
+          withCredentials: true,
+        }
+      );
+
+      // Store user data in Redux
+      dispatch(setUserData(result.data.user || result.data));
+
+      toast.success("Login Successfully");
+      navigate("/");
+    } catch (error) {
+      console.log(error);
+      toast.error(error.response?.data?.message || "Google Login Failed");
+    }
+  };
 
   return (
-    <div className="bg-[#dddddb] w-screen h-screen flex items-center justify-center">
-      <form className="w-[90%] md:w-[900px] h-[600px] bg-white rounded-2xl shadow-xl flex overflow-hidden">
-
-        {/* Left Div */}
-        <div className="w-full md:w-1/2 h-full flex flex-col items-center justify-center gap-4">
-
-          {/* Heading */}
-          <div className="w-[80%] flex flex-col items-center text-center">
-            <h1 className="text-3xl font-semibold text-black">
-              Welcome Back
+    <div className="bg-[#dddbdb] w-[100vw] h-[100vh] flex items-center justify-center flex-col gap-3">
+      <form
+        className="w-[90%] md:w-200 h-150 bg-white shadow-xl rounded-2xl flex"
+        onSubmit={(e) => e.preventDefault()}
+      >
+        {/* Left Section */}
+        <div className="md:w-[50%] w-full h-full flex flex-col items-center justify-center gap-4">
+          <div>
+            <h1 className="font-semibold text-black text-2xl">
+              Welcome back
             </h1>
 
-            <h2 className="text-[#999797] text-[17px] mt-1">
+            <h2 className="text-[#999797] text-[18px]">
               Login to your account
             </h2>
           </div>
 
           {/* Email */}
-          <div className="w-[80%] flex flex-col gap-1">
+          <div className="flex flex-col gap-1 w-[85%] items-start justify-center px-3">
             <label htmlFor="email" className="font-semibold">
               Email
             </label>
@@ -35,13 +112,15 @@ const Login = () => {
             <input
               id="email"
               type="email"
-              placeholder="Your Email"
-              className="border border-[#e7e6e6] h-[40px] rounded-md px-4 outline-none focus:border-black"
+              className="border w-full h-[35px] border-[#e7e6e6] text-[15px] px-5 outline-none"
+              placeholder="Your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
           {/* Password */}
-          <div className="w-[80%] flex flex-col gap-1 relative">
+          <div className="flex flex-col gap-1 w-[85%] items-start justify-center px-3 relative">
             <label htmlFor="password" className="font-semibold">
               Password
             </label>
@@ -49,97 +128,95 @@ const Login = () => {
             <input
               id="password"
               type={show ? "text" : "password"}
-              placeholder="Your Password"
-              className="border border-[#e7e6e6] h-[40px] rounded-md px-4 pr-12 outline-none focus:border-black"
+              className="border w-full h-[35px] border-[#e7e6e6] text-[15px] px-5 outline-none"
+              placeholder="***********"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
 
-            {show ? (
-              <IoEye
-                onClick={() => setShow(false)}
-                className="absolute right-4 top-[38px] text-xl cursor-pointer"
+            {!show ? (
+              <MdOutlineRemoveRedEye
+                className="absolute w-5 h-5 cursor-pointer right-[5%] bottom-[10%]"
+                onClick={() => setShow(true)}
               />
             ) : (
-              <IoEyeOutline
-                onClick={() => setShow(true)}
-                className="absolute right-4 top-[38px] text-xl cursor-pointer"
+              <MdRemoveRedEye
+                className="absolute w-5 h-5 cursor-pointer right-[5%] bottom-[10%]"
+                onClick={() => setShow(false)}
               />
             )}
           </div>
 
-          {/* Forgot Password */}
-          <div className="w-[80%] flex justify-center">
-            <span
-              onClick={() => navigate("/forgot-password")}
-              className="text-[15px] text-[#6f6f6f] underline underline-offset-2 cursor-pointer hover:text-black"
-            >
-              Forgot Password?
-            </span>
-          </div>
-
           {/* Login Button */}
           <button
-            type="submit"
-            className="w-[80%] h-[45px] bg-black text-white rounded-md font-semibold hover:bg-[#222] transition"
+            className="w-[80%] h-[40px] bg-black text-white cursor-pointer flex items-center justify-center rounded-[5px]"
+            disabled={loading}
+            onClick={handleLogin}
           >
-            Login
+            {loading ? (
+              <ClipLoader size={30} color="white" />
+            ) : (
+              "Login"
+            )}
           </button>
 
-          {/* Or Continue */}
-          <div className="w-[80%] flex items-center gap-3">
-            <div className="flex-1 h-[1px] bg-[#c4c4c4]"></div>
+          <span
+            className="text-[13px] cursor-pointer text-[#585757]"
+            onClick={() => navigate("/forgotpassword")}
+          >
+            Forgot your password?
+          </span>
 
-            <span className="text-[#7a7a7a] text-sm">
-              or continue
-            </span>
+          {/* Continue with */}
+          <div className="w-[80%] flex items-center gap-2">
+            <div className="w-[25%] h-[0.5px] bg-[#c4c4c4]"></div>
 
-            <div className="flex-1 h-[1px] bg-[#c4c4c4]"></div>
+            <div className="w-[50%] text-[15px] text-[#999797] flex items-center justify-center">
+              Or continue with
+            </div>
+
+            <div className="w-[25%] h-[0.5px] bg-[#c4c4c4]"></div>
           </div>
 
-          {/* Google Button */}
-          <button
-            type="button"
-            className="w-[80%] h-[45px] border border-[#e7e6e6] rounded-md flex items-center justify-center gap-3 hover:border-black transition"
+          {/* Google Login */}
+          <div
+            className="w-[80%] h-[40px] border border-[#d3d2d2] rounded-[5px] flex items-center justify-center cursor-pointer"
+            onClick={googleLogin}
           >
-            <img
-              src={google}
-              alt="Google"
-              className="w-5 h-5"
-            />
+            <img src={google} alt="Google" className="w-[25px]" />
 
-            <span className="text-[15px] font-medium text-[#555]">
-              Continue with Google
+            <span className="text-[18px] text-gray-500">
+              Google
             </span>
-          </button>
+          </div>
 
           {/* Sign Up */}
-          <div className="text-[#6f6f6f] text-[15px]">
+          <div className="text-[#6f6f6f]">
             Don't have an account?{" "}
             <span
+              className="underline underline-offset-1 text-black cursor-pointer"
               onClick={() => navigate("/signup")}
-              className="underline underline-offset-2 text-black font-medium cursor-pointer hover:text-gray-700"
             >
               Sign Up
             </span>
           </div>
-
         </div>
 
-        {/* Right Div */}
-        <div className="hidden md:flex w-1/2 h-full bg-black rounded-r-2xl flex-col items-center justify-center">
+        {/* Right Section */}
+        <div className="w-[50%] h-full rounded-r-2xl bg-black md:flex items-center justify-center flex-col hidden">
           <img
             src={logo}
+            className="w-30 shadow-2xl"
             alt="Logo"
-            className="w-[120px] shadow-2xl"
           />
 
-          <span className="text-white text-2xl font-semibold mt-4 tracking-wide">
+          <span className="text-white text-2xl mt-4 tracking-wide">
             VIRTUAL COURSES
           </span>
         </div>
-
       </form>
     </div>
   );
-};
+}
 
 export default Login;

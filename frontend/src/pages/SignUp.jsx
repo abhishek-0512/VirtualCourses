@@ -1,20 +1,70 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IoEye, IoEyeOutline } from "react-icons/io5";
+import { ClipLoader } from "react-spinners";
+import { toast } from "react-toastify";
+import axios from "axios";
+import { useDispatch } from "react-redux";
+
 import logo from "../assets/logo.jpg";
 import google from "../assets/google.jpg";
 
+const serverUrl = "http://localhost:8000";
+
 function SignUp() {
-  const [show, setShow] = useState(false);
   const navigate = useNavigate();
+  const dispatch=useDispatch()
+  const [show, setShow] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("student");
+
+  const handleSignup = async (e) => {
+    e.preventDefault();
+
+    setLoading(true);
+
+    try {
+      const result = await axios.post(
+        serverUrl + "/api/auth/signup",
+        {
+          name,
+          email,
+          password,
+          role,
+        },
+        {
+          withCredentials: true,
+        } 
+      );
+
+      dispatch(setUserData(result.data))
+
+      setLoading(false);
+
+      toast.success("Signup Successfully");
+
+      navigate("/login");
+    } catch (error) {
+      console.log(error);
+
+      setLoading(false);
+
+      toast.error(error.response?.data?.message || "Signup Failed");
+    }
+  };
 
   return (
     <div className="bg-[#dddddb] w-screen h-screen flex items-center justify-center">
-      <form className="w-[90%] md:w-[900px] h-[600px] bg-white rounded-2xl shadow-xl flex overflow-hidden">
-
-        {/* Left Div */}
+      <form
+        onSubmit={handleSignup}
+        className="w-[90%] md:w-[900px] h-[600px] bg-white rounded-2xl shadow-xl flex overflow-hidden"
+      >
+        {/* Left Section */}
         <div className="w-full md:w-1/2 h-full flex flex-col items-center justify-center gap-4">
-
           {/* Heading */}
           <div className="w-[80%] flex flex-col items-center text-center">
             <h1 className="text-3xl font-semibold text-black">
@@ -28,43 +78,43 @@ function SignUp() {
 
           {/* Name */}
           <div className="w-[80%] flex flex-col gap-1">
-            <label htmlFor="name" className="font-semibold">
-              Name
-            </label>
+            <label className="font-semibold">Name</label>
 
             <input
-              id="name"
               type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               placeholder="Your Name"
               className="border border-[#e7e6e6] h-[40px] rounded-md px-4 outline-none focus:border-black"
+              required
             />
           </div>
 
           {/* Email */}
           <div className="w-[80%] flex flex-col gap-1">
-            <label htmlFor="email" className="font-semibold">
-              Email
-            </label>
+            <label className="font-semibold">Email</label>
 
             <input
-              id="email"
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="Your Email"
               className="border border-[#e7e6e6] h-[40px] rounded-md px-4 outline-none focus:border-black"
+              required
             />
           </div>
 
           {/* Password */}
           <div className="w-[80%] flex flex-col gap-1 relative">
-            <label htmlFor="password" className="font-semibold">
-              Password
-            </label>
+            <label className="font-semibold">Password</label>
 
             <input
-              id="password"
               type={show ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="Your Password"
               className="border border-[#e7e6e6] h-[40px] rounded-md px-4 pr-12 outline-none focus:border-black"
+              required
             />
 
             {show ? (
@@ -81,25 +131,48 @@ function SignUp() {
           </div>
 
           {/* Student / Educator */}
-          <div className="w-[80%] flex justify-between">
-            <span className="px-4 py-2 border border-[#e7e6e6] rounded-xl cursor-pointer hover:border-black">
+          <div className="w-[80%] flex gap-4">
+            <div
+              onClick={() => setRole("student")}
+              className={`w-1/2 h-[45px] rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${
+                role === "student"
+                  ? "border-black bg-gray-100"
+                  : "border-[#e7e6e6]"
+              }`}
+            >
               Student
-            </span>
+            </div>
 
-            <span className="px-4 py-2 border border-[#e7e6e6] rounded-xl cursor-pointer hover:border-black">
+            <div
+              onClick={() => setRole("educator")}
+              className={`w-1/2 h-[45px] rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${
+                role === "educator"
+                  ? "border-black bg-gray-100"
+                  : "border-[#e7e6e6]"
+              }`}
+            >
               Educator
-            </span>
+            </div>
           </div>
 
-          {/* Sign Up Button */}
+          {/* Signup Button */}
           <button
             type="submit"
-            className="w-[80%] h-[45px] bg-black text-white rounded-md font-semibold hover:bg-[#222] transition"
+            disabled={loading}
+            className={`w-[80%] h-[45px] rounded-md text-white font-semibold flex items-center justify-center transition ${
+              loading
+                ? "bg-gray-700 cursor-not-allowed"
+                : "bg-black hover:bg-[#222]"
+            }`}
           >
-            Sign Up
+            {loading ? (
+              <ClipLoader color="#fff" size={22} />
+            ) : (
+              "Sign Up"
+            )}
           </button>
 
-          {/* Or Continue */}
+          {/* Divider */}
           <div className="w-[80%] flex items-center gap-3">
             <div className="flex-1 h-[1px] bg-[#c4c4c4]"></div>
 
@@ -126,9 +199,9 @@ function SignUp() {
             </span>
           </button>
 
-          {/* Already have an account */}
+          {/* Login */}
           <div className="text-[#6f6f6f] text-[15px]">
-            Already have an account{" "}
+            Already have an account?{" "}
             <span
               className="underline underline-offset-1 text-black cursor-pointer"
               onClick={() => navigate("/login")}
@@ -136,10 +209,9 @@ function SignUp() {
               Login
             </span>
           </div>
-
         </div>
 
-        {/* Right Div */}
+        {/* Right Section */}
         <div className="hidden md:flex w-1/2 h-full bg-black rounded-r-2xl flex-col items-center justify-center">
           <img
             src={logo}
@@ -151,7 +223,6 @@ function SignUp() {
             VIRTUAL COURSES
           </span>
         </div>
-
       </form>
     </div>
   );
