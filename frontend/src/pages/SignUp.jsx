@@ -1,229 +1,117 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { IoEye, IoEyeOutline } from "react-icons/io5";
-import { ClipLoader } from "react-spinners";
-import { toast } from "react-toastify";
-import axios from "axios";
-import { useDispatch } from "react-redux";
-
 import logo from "../assets/logo.jpg";
 import google from "../assets/google.jpg";
-
-const serverUrl = "http://localhost:8000";
+import axios from "axios";
+import { serverUrl } from "../App";
+import { MdOutlineRemoveRedEye, MdRemoveRedEye } from "react-icons/md";
+import { useNavigate } from "react-router-dom";
+import { signInWithPopup } from "firebase/auth";
+import { auth, provider } from "../../utils/Firebase";
+import { ClipLoader } from "react-spinners";
+import { toast } from "react-toastify";
+import { useDispatch } from "react-redux";
+import { setUserData } from "../redux/userSlice";
 
 function SignUp() {
-  const navigate = useNavigate();
-  const dispatch=useDispatch()
-  const [show, setShow] = useState(false);
-  const [loading, setLoading] = useState(false);
-
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("student");
+  const [show, setShow] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const handleSignup = async (e) => {
-    e.preventDefault();
-
+  const handleSignUp = async () => {
     setLoading(true);
-
     try {
-      const result = await axios.post(
-        serverUrl + "/api/auth/signup",
-        {
-          name,
-          email,
-          password,
-          role,
-        },
-        {
-          withCredentials: true,
-        } 
-      );
-
-      dispatch(setUserData(result.data))
-
-      setLoading(false);
-
-      toast.success("Signup Successfully");
-
-      navigate("/login");
+      const result = await axios.post(serverUrl + "/api/auth/signup", { name, email, password, role }, { withCredentials: true });
+      dispatch(setUserData(result.data));
+      navigate("/");
+      toast.success("SignUp Successfully");
     } catch (error) {
-      console.log(error);
-
+      toast.error(error.response?.data?.message || "Sign up failed");
+    } finally {
       setLoading(false);
+    }
+  };
 
-      toast.error(error.response?.data?.message || "Signup Failed");
+  const googleSignUp = async () => {
+    try {
+      const response = await signInWithPopup(auth, provider);
+      const user = response.user;
+      const result = await axios.post(serverUrl + "/api/auth/googlesignup", { name: user.displayName, email: user.email, role }, { withCredentials: true });
+      dispatch(setUserData(result.data));
+      navigate("/");
+      toast.success("SignUp Successfully");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Google sign up failed");
     }
   };
 
   return (
-    <div className="bg-[#dddddb] w-screen h-screen flex items-center justify-center">
-      <form
-        onSubmit={handleSignup}
-        className="w-[90%] md:w-[900px] h-[600px] bg-white rounded-2xl shadow-xl flex overflow-hidden"
-      >
-        {/* Left Section */}
-        <div className="w-full md:w-1/2 h-full flex flex-col items-center justify-center gap-4">
-          {/* Heading */}
-          <div className="w-[80%] flex flex-col items-center text-center">
-            <h1 className="text-3xl font-semibold text-black">
-              Let's get started
-            </h1>
-
-            <h2 className="text-[#999797] text-[17px] mt-1">
-              Create your account
-            </h2>
+    <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_right,_rgba(15,23,42,0.95),_rgba(59,130,246,0.18)_55%,_#f8fafc_100%)] px-4 py-8">
+      <div className="glass-panel flex w-full max-w-6xl overflow-hidden rounded-[32px]">
+        <div className="flex w-full flex-col justify-center px-6 py-10 sm:px-10 lg:w-[52%] lg:px-12">
+          <div className="mb-8">
+            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-500">Start learning</p>
+            <h1 className="mt-2 text-3xl font-semibold text-slate-900">Create your account</h1>
+            <p className="mt-2 text-sm text-slate-500">Join a beautifully crafted learning community in minutes.</p>
           </div>
 
-          {/* Name */}
-          <div className="w-[80%] flex flex-col gap-1">
-            <label className="font-semibold">Name</label>
-
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your Name"
-              className="border border-[#e7e6e6] h-[40px] rounded-md px-4 outline-none focus:border-black"
-              required
-            />
-          </div>
-
-          {/* Email */}
-          <div className="w-[80%] flex flex-col gap-1">
-            <label className="font-semibold">Email</label>
-
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Your Email"
-              className="border border-[#e7e6e6] h-[40px] rounded-md px-4 outline-none focus:border-black"
-              required
-            />
-          </div>
-
-          {/* Password */}
-          <div className="w-[80%] flex flex-col gap-1 relative">
-            <label className="font-semibold">Password</label>
-
-            <input
-              type={show ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Your Password"
-              className="border border-[#e7e6e6] h-[40px] rounded-md px-4 pr-12 outline-none focus:border-black"
-              required
-            />
-
-            {show ? (
-              <IoEye
-                onClick={() => setShow(false)}
-                className="absolute right-4 bottom-3 text-xl cursor-pointer"
-              />
-            ) : (
-              <IoEyeOutline
-                onClick={() => setShow(true)}
-                className="absolute right-4 bottom-3 text-xl cursor-pointer"
-              />
-            )}
-          </div>
-
-          {/* Student / Educator */}
-          <div className="w-[80%] flex gap-4">
-            <div
-              onClick={() => setRole("student")}
-              className={`w-1/2 h-[45px] rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${
-                role === "student"
-                  ? "border-black bg-gray-100"
-                  : "border-[#e7e6e6]"
-              }`}
-            >
-              Student
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="name" className="mb-2 block text-sm font-medium text-slate-700">Name</label>
+              <input id="name" type="text" className="input-shell" placeholder="Your name" onChange={(e) => setName(e.target.value)} value={name} />
             </div>
-
-            <div
-              onClick={() => setRole("educator")}
-              className={`w-1/2 h-[45px] rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${
-                role === "educator"
-                  ? "border-black bg-gray-100"
-                  : "border-[#e7e6e6]"
-              }`}
-            >
-              Educator
+            <div>
+              <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-700">Email</label>
+              <input id="email" type="email" className="input-shell" placeholder="Your email" onChange={(e) => setEmail(e.target.value)} value={email} />
+            </div>
+            <div>
+              <label htmlFor="password" className="mb-2 block text-sm font-medium text-slate-700">Password</label>
+              <div className="relative">
+                <input id="password" type={show ? "text" : "password"} className="input-shell pr-12" placeholder="Create a password" onChange={(e) => setPassword(e.target.value)} value={password} />
+                {show ? (
+                  <MdRemoveRedEye className="absolute right-3 top-3 h-5 w-5 cursor-pointer text-slate-500" onClick={() => setShow((prev) => !prev)} />
+                ) : (
+                  <MdOutlineRemoveRedEye className="absolute right-3 top-3 h-5 w-5 cursor-pointer text-slate-500" onClick={() => setShow((prev) => !prev)} />
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Signup Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-[80%] h-[45px] rounded-md text-white font-semibold flex items-center justify-center transition ${
-              loading
-                ? "bg-gray-700 cursor-not-allowed"
-                : "bg-black hover:bg-[#222]"
-            }`}
-          >
-            {loading ? (
-              <ClipLoader color="#fff" size={22} />
-            ) : (
-              "Sign Up"
-            )}
-          </button>
-
-          {/* Divider */}
-          <div className="w-[80%] flex items-center gap-3">
-            <div className="flex-1 h-[1px] bg-[#c4c4c4]"></div>
-
-            <span className="text-[#7a7a7a] text-sm">
-              or continue
-            </span>
-
-            <div className="flex-1 h-[1px] bg-[#c4c4c4]"></div>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button type="button" className={`rounded-full border px-4 py-2 text-sm font-medium transition ${role === "student" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`} onClick={() => setRole("student")}>Student</button>
+            <button type="button" className={`rounded-full border px-4 py-2 text-sm font-medium transition ${role === "educator" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`} onClick={() => setRole("educator")}>Educator</button>
           </div>
 
-          {/* Google Button */}
-          <button
-            type="button"
-            className="w-[80%] h-[45px] border border-[#e7e6e6] rounded-md flex items-center justify-center gap-3 hover:border-black transition"
-          >
-            <img
-              src={google}
-              alt="Google"
-              className="w-5 h-5"
-            />
-
-            <span className="text-[15px] font-medium text-[#555]">
-              Continue with Google
-            </span>
+          <button className="mt-6 flex w-full items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800" disabled={loading} onClick={handleSignUp}>
+            {loading ? <ClipLoader size={18} color="white" /> : "Create account"}
           </button>
 
-          {/* Login */}
-          <div className="text-[#6f6f6f] text-[15px]">
-            Already have an account?{" "}
-            <span
-              className="underline underline-offset-1 text-black cursor-pointer"
-              onClick={() => navigate("/login")}
-            >
-              Login
-            </span>
+          <div className="mt-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-slate-200" />
+            <span className="text-sm text-slate-400">or continue with</span>
+            <div className="h-px flex-1 bg-slate-200" />
           </div>
+
+          <button className="mt-5 flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50" onClick={googleSignUp}>
+            <img src={google} alt="Google" className="h-5 w-5" />
+            Continue with Google
+          </button>
+
+          <p className="mt-6 text-sm text-slate-500">
+            Already have an account? <span className="cursor-pointer font-semibold text-slate-900" onClick={() => navigate("/login")}>Log in</span>
+          </p>
         </div>
 
-        {/* Right Section */}
-        <div className="hidden md:flex w-1/2 h-full bg-black rounded-r-2xl flex-col items-center justify-center">
-          <img
-            src={logo}
-            alt="Logo"
-            className="w-[120px] shadow-2xl"
-          />
-
-          <span className="text-white text-2xl font-semibold mt-4 tracking-wide">
-            VIRTUAL COURSES
-          </span>
+        <div className="hidden w-[48%] flex-col items-center justify-center bg-slate-950 px-8 py-10 text-center text-white lg:flex">
+          <img src={logo} className="mb-6 h-24 w-24 rounded-3xl border border-white/10 object-cover shadow-2xl" alt="Virtual Courses" />
+          <h2 className="text-3xl font-semibold">Virtual Courses</h2>
+          <p className="mt-3 max-w-sm text-sm leading-7 text-slate-300">Create your identity, join a thriving learning network, and start sharing knowledge with clarity.</p>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

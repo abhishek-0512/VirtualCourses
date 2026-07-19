@@ -3,50 +3,32 @@ import logo from "../assets/logo.jpg";
 import google from "../assets/google.jpg";
 import axios from "axios";
 import { serverUrl } from "../App";
-import {
-  MdOutlineRemoveRedEye,
-  MdRemoveRedEye,
-} from "react-icons/md";
+import { MdOutlineRemoveRedEye, MdRemoveRedEye } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import { signInWithPopup } from "firebase/auth";
-import { auth, provider } from "../utils/Firebase";
+import { auth, provider } from "../../utils/Firebase";
 import { toast } from "react-toastify";
 import { ClipLoader } from "react-spinners";
 import { useDispatch } from "react-redux";
-import { setUserData } from "../redux/userSlice"; // Update path if needed
+import { setUserData } from "../redux/userSlice";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [show, setShow] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const [show, setShow] = useState(false);
-  const [loading, setLoading] = useState(false);
-
   const handleLogin = async () => {
     setLoading(true);
-
     try {
-      const result = await axios.post(
-        serverUrl + "/api/auth/login",
-        {
-          email,
-          password,
-        },
-        {
-          withCredentials: true,
-        }
-      );
-
-      // Store user data in Redux
-      dispatch(setUserData(result.data.user || result.data));
-
-      toast.success("Login Successfully");
+      const result = await axios.post(serverUrl + "/api/auth/login", { email, password }, { withCredentials: true });
+      dispatch(setUserData(result.data));
       navigate("/");
+      toast.success("Login Successfully");
     } catch (error) {
-      console.log(error);
-      toast.error(error.response?.data?.message || "Login Failed");
+      toast.error(error.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -55,166 +37,76 @@ function Login() {
   const googleLogin = async () => {
     try {
       const response = await signInWithPopup(auth, provider);
-
       const user = response.user;
-
       const name = user.displayName;
       const email = user.email;
       const role = "";
-
-      const result = await axios.post(
-        serverUrl + "/api/auth/googlesignup",
-        {
-          name,
-          email,
-          role,
-        },
-        {
-          withCredentials: true,
-        }
-      );
-
-      // Store user data in Redux
-      dispatch(setUserData(result.data.user || result.data));
-
-      toast.success("Login Successfully");
+      const result = await axios.post(serverUrl + "/api/auth/googlesignup", { name, email, role }, { withCredentials: true });
+      dispatch(setUserData(result.data));
       navigate("/");
+      toast.success("Login Successfully");
     } catch (error) {
-      console.log(error);
-      toast.error(error.response?.data?.message || "Google Login Failed");
+      toast.error(error.response?.data?.message || "Google login failed");
     }
   };
 
   return (
-    <div className="bg-[#dddbdb] w-[100vw] h-[100vh] flex items-center justify-center flex-col gap-3">
-      <form
-        className="w-[90%] md:w-200 h-150 bg-white shadow-xl rounded-2xl flex"
-        onSubmit={(e) => e.preventDefault()}
-      >
-        {/* Left Section */}
-        <div className="md:w-[50%] w-full h-full flex flex-col items-center justify-center gap-4">
-          <div>
-            <h1 className="font-semibold text-black text-2xl">
-              Welcome back
-            </h1>
-
-            <h2 className="text-[#999797] text-[18px]">
-              Login to your account
-            </h2>
+    <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.95),_rgba(59,130,246,0.22)_55%,_#f8fafc_100%)] px-4 py-8">
+      <div className="glass-panel flex w-full max-w-6xl overflow-hidden rounded-[32px]">
+        <div className="flex w-full flex-col justify-center px-6 py-10 sm:px-10 lg:w-[52%] lg:px-12">
+          <div className="mb-8">
+            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-500">Welcome back</p>
+            <h1 className="mt-2 text-3xl font-semibold text-slate-900">Sign in to continue</h1>
+            <p className="mt-2 text-sm text-slate-500">A refined learning experience is just one login away.</p>
           </div>
 
-          {/* Email */}
-          <div className="flex flex-col gap-1 w-[85%] items-start justify-center px-3">
-            <label htmlFor="email" className="font-semibold">
-              Email
-            </label>
-
-            <input
-              id="email"
-              type="email"
-              className="border w-full h-[35px] border-[#e7e6e6] text-[15px] px-5 outline-none"
-              placeholder="Your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-
-          {/* Password */}
-          <div className="flex flex-col gap-1 w-[85%] items-start justify-center px-3 relative">
-            <label htmlFor="password" className="font-semibold">
-              Password
-            </label>
-
-            <input
-              id="password"
-              type={show ? "text" : "password"}
-              className="border w-full h-[35px] border-[#e7e6e6] text-[15px] px-5 outline-none"
-              placeholder="***********"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-
-            {!show ? (
-              <MdOutlineRemoveRedEye
-                className="absolute w-5 h-5 cursor-pointer right-[5%] bottom-[10%]"
-                onClick={() => setShow(true)}
-              />
-            ) : (
-              <MdRemoveRedEye
-                className="absolute w-5 h-5 cursor-pointer right-[5%] bottom-[10%]"
-                onClick={() => setShow(false)}
-              />
-            )}
-          </div>
-
-          {/* Login Button */}
-          <button
-            className="w-[80%] h-[40px] bg-black text-white cursor-pointer flex items-center justify-center rounded-[5px]"
-            disabled={loading}
-            onClick={handleLogin}
-          >
-            {loading ? (
-              <ClipLoader size={30} color="white" />
-            ) : (
-              "Login"
-            )}
-          </button>
-
-          <span
-            className="text-[13px] cursor-pointer text-[#585757]"
-            onClick={() => navigate("/forgotpassword")}
-          >
-            Forgot your password?
-          </span>
-
-          {/* Continue with */}
-          <div className="w-[80%] flex items-center gap-2">
-            <div className="w-[25%] h-[0.5px] bg-[#c4c4c4]"></div>
-
-            <div className="w-[50%] text-[15px] text-[#999797] flex items-center justify-center">
-              Or continue with
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-700">Email</label>
+              <input id="email" type="email" className="input-shell" placeholder="Enter your email" onChange={(e) => setEmail(e.target.value)} value={email} />
             </div>
 
-            <div className="w-[25%] h-[0.5px] bg-[#c4c4c4]"></div>
+            <div>
+              <label htmlFor="password" className="mb-2 block text-sm font-medium text-slate-700">Password</label>
+              <div className="relative">
+                <input id="password" type={show ? "text" : "password"} className="input-shell pr-12" placeholder="Enter your password" onChange={(e) => setPassword(e.target.value)} value={password} />
+                {show ? (
+                  <MdRemoveRedEye className="absolute right-3 top-3 h-5 w-5 cursor-pointer text-slate-500" onClick={() => setShow((prev) => !prev)} />
+                ) : (
+                  <MdOutlineRemoveRedEye className="absolute right-3 top-3 h-5 w-5 cursor-pointer text-slate-500" onClick={() => setShow((prev) => !prev)} />
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Google Login */}
-          <div
-            className="w-[80%] h-[40px] border border-[#d3d2d2] rounded-[5px] flex items-center justify-center cursor-pointer"
-            onClick={googleLogin}
-          >
-            <img src={google} alt="Google" className="w-[25px]" />
+          <button className="mt-6 flex w-full items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800" disabled={loading} onClick={handleLogin}>
+            {loading ? <ClipLoader size={18} color="white" /> : "Login"}
+          </button>
 
-            <span className="text-[18px] text-gray-500">
-              Google
-            </span>
+          <button className="mt-3 text-sm font-medium text-slate-600 transition hover:text-slate-900" onClick={() => navigate("/forgotpassword")}>Forgot your password?</button>
+
+          <div className="mt-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-slate-200" />
+            <span className="text-sm text-slate-400">or continue with</span>
+            <div className="h-px flex-1 bg-slate-200" />
           </div>
 
-          {/* Sign Up */}
-          <div className="text-[#6f6f6f]">
-            Don't have an account?{" "}
-            <span
-              className="underline underline-offset-1 text-black cursor-pointer"
-              onClick={() => navigate("/signup")}
-            >
-              Sign Up
-            </span>
-          </div>
+          <button className="mt-5 flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50" onClick={googleLogin}>
+            <img src={google} alt="Google" className="h-5 w-5" />
+            Continue with Google
+          </button>
+
+          <p className="mt-6 text-sm text-slate-500">
+            Don’t have an account? <span className="cursor-pointer font-semibold text-slate-900" onClick={() => navigate("/signup")}>Create one</span>
+          </p>
         </div>
 
-        {/* Right Section */}
-        <div className="w-[50%] h-full rounded-r-2xl bg-black md:flex items-center justify-center flex-col hidden">
-          <img
-            src={logo}
-            className="w-30 shadow-2xl"
-            alt="Logo"
-          />
-
-          <span className="text-white text-2xl mt-4 tracking-wide">
-            VIRTUAL COURSES
-          </span>
+        <div className="hidden w-[48%] flex-col items-center justify-center bg-slate-950 px-8 py-10 text-center text-white lg:flex">
+          <img src={logo} className="mb-6 h-24 w-24 rounded-3xl border border-white/10 object-cover shadow-2xl" alt="Virtual Courses" />
+          <h2 className="text-3xl font-semibold">Virtual Courses</h2>
+          <p className="mt-3 max-w-sm text-sm leading-7 text-slate-300">A polished way to explore courses, learn with AI, and build future-ready skills.</p>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
