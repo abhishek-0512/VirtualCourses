@@ -2,63 +2,126 @@ import { genToken } from "../config/token.js";
 import validator from "validator";
 import bcrypt from "bcryptjs";
 import User from "../model/userModel.js";
-import sendMail from "../config/Mail.js";
 
+
+/* ==========================================
+              COOKIE OPTIONS
+========================================== */
+
+const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: "/"
+};
+
+
+
+/* ==========================================
+                    SIGN UP
+========================================== */
 
 export const signUp = async (req,res)=>{
 
     try {
 
-        const {name,email,password,role} = req.body;
+        let {name,email,password,role} = req.body;
 
 
-        const existUser = await User.findOne({email});
+        if(!name || !email || !password || !role){
 
-        if(existUser){
             return res.status(400).json({
-                message:"email already exist"
+                success:false,
+                message:"All fields are required"
             });
+
         }
+
+
+        name = name.trim();
+        email = email.trim().toLowerCase();
+
 
 
         if(!validator.isEmail(email)){
+
             return res.status(400).json({
-                message:"Please enter valid Email"
+                success:false,
+                message:"Invalid email address"
             });
+
         }
+
+
+
+        if(!["student","educator"].includes(role)){
+
+            return res.status(400).json({
+                success:false,
+                message:"Invalid role"
+            });
+
+        }
+
 
 
         if(password.length < 8){
+
             return res.status(400).json({
-                message:"Please enter a Strong Password"
+                success:false,
+                message:"Password must contain minimum 8 characters"
             });
+
         }
+
+
+
+        const existingUser = await User.findOne({email});
+
+
+        if(existingUser){
+
+            return res.status(409).json({
+                success:false,
+                message:"Email already exists"
+            });
+
+        }
+
 
 
         const hashPassword = await bcrypt.hash(password,10);
 
 
+
         const user = await User.create({
+
             name,
             email,
             password:hashPassword,
             role
+
         });
 
 
-        const token = await genToken(user._id);
+
+        const token = genToken(user._id);
 
 
-        res.cookie("token",token,{
-            httpOnly:true,
-            secure:false,
-            sameSite:"Strict",
-            maxAge:7*24*60*60*1000
-        });
+        res.cookie(
+            "token",
+            token,
+            cookieOptions
+        );
+
 
 
         return res.status(201).json({
+
+            success:true,
             message:"Account created successfully",
+
             user:{
                 id:user._id,
                 name:user.name,
@@ -66,38 +129,77 @@ export const signUp = async (req,res)=>{
                 role:user.role,
                 photoUrl:user.photoUrl
             }
+
         });
+
 
 
     } catch(error){
 
-        console.log("signup error",error);
+        console.log("Signup Error:",error);
+
 
         return res.status(500).json({
-            message:`signup Error ${error}`
+
+            success:false,
+            message:"Internal server error"
+
         });
+
     }
+
 };
 
 
 
 
 
+/* ==========================================
+                    LOGIN
+========================================== */
+
 export const login = async(req,res)=>{
 
     try {
 
-        const {email,password}=req.body;
+
+        let {email,password} = req.body;
 
 
-        const user = await User.findOne({email});
+
+        if(!email || !password){
+
+            return res.status(400).json({
+
+                success:false,
+                message:"Email and password required"
+
+            });
+
+        }
+
+
+
+        email = email.trim().toLowerCase();
+
+
+
+        const user = await User.findOne({email})
+        .select("+password");
+
 
 
         if(!user){
-            return res.status(400).json({
-                message:"user does not exist"
+
+            return res.status(404).json({
+
+                success:false,
+                message:"User not found"
+
             });
+
         }
+
 
 
         const isMatch = await bcrypt.compare(
@@ -106,28 +208,35 @@ export const login = async(req,res)=>{
         );
 
 
+
         if(!isMatch){
-            return res.status(400).json({
-                message:"incorrect Password"
+
+            return res.status(401).json({
+
+                success:false,
+                message:"Incorrect password"
+
             });
+
         }
 
 
 
-        const token = await genToken(user._id);
+        const token = genToken(user._id);
 
 
-        res.cookie("token",token,{
-            httpOnly:true,
-            secure:false,
-            sameSite:"Strict",
-            maxAge:7*24*60*60*1000
-        });
+
+        res.cookie(
+            "token",
+            token,
+            cookieOptions
+        );
 
 
 
         return res.status(200).json({
 
+            success:true,
             message:"Login successful",
 
             user:{
@@ -144,70 +253,98 @@ export const login = async(req,res)=>{
 
     } catch(error){
 
-        console.log("login error",error);
+
+        console.log("Login Error:",error);
+
 
         return res.status(500).json({
-            message:`login Error ${error}`
+
+            success:false,
+            message:"Internal server error"
+
         });
+
     }
+
 };
 
 
 
 
 
+
+/* ==========================================
+                    LOGOUT
+========================================== */
 
 export const logOut = async(req,res)=>{
 
     try {
 
 
-        res.clearCookie("token",{
-            httpOnly:true,
-            sameSite:"Strict",
-            secure:false
-        });
+        res.clearCookie(
+            "token",
+            {
+                httpOnly:true,
+                secure:process.env.NODE_ENV === "production",
+                sameSite:process.env.NODE_ENV === "production" 
+                ? "None" 
+                : "Lax",
+                path:"/"
+            }
+        );
+
 
 
         return res.status(200).json({
-            message:"logOut Successfully"
+
+            success:true,
+            message:"Logged out successfully"
+
         });
+
 
 
     } catch(error){
 
+
+        console.log("Logout Error:",error);
+
+
         return res.status(500).json({
-            message:`logout Error ${error}`
+
+            success:false,
+            message:"Internal server error"
+
         });
+
     }
+
 };
 
 
 
 
 
-
-
+/* ==========================================
+              GOOGLE LOGIN / SIGNUP
+========================================== */
 
 export const googleSignup = async(req,res)=>{
 
     try {
 
 
-        const {name,email,role}=req.body;
+        let {name,email,role} = req.body;
 
 
-        let user = await User.findOne({email});
 
+        if(!name || !email){
 
-        if(!user){
+            return res.status(400).json({
 
-            user = await User.create({
-
-                name,
-                email,
-                role,
-                googleId:email
+                success:false,
+                message:"Google information missing"
 
             });
 
@@ -215,21 +352,98 @@ export const googleSignup = async(req,res)=>{
 
 
 
-        const token = await genToken(user._id);
+        name = name.trim();
+        email = email.trim().toLowerCase();
 
 
 
-        res.cookie("token",token,{
-            httpOnly:true,
-            secure:false,
-            sameSite:"Strict",
-            maxAge:7*24*60*60*1000
-        });
+        if(!validator.isEmail(email)){
+
+            return res.status(400).json({
+
+                success:false,
+                message:"Invalid email"
+
+            });
+
+        }
+
+
+
+        if(!role){
+            role="student";
+        }
+
+
+
+        if(!["student","educator"].includes(role)){
+
+
+            return res.status(400).json({
+
+                success:false,
+                message:"Invalid role"
+
+            });
+
+        }
+
+
+
+
+        let user = await User.findOne({email});
+
+
+
+        if(!user){
+
+
+            user = await User.create({
+
+                name,
+                email,
+                role,
+                googleId:email,
+                photoUrl:""
+
+            });
+
+
+        }
+        else{
+
+
+            user.name = name;
+
+
+            if(!user.googleId){
+
+                user.googleId = email;
+
+            }
+
+
+            await user.save();
+
+        }
+
+
+
+        const token = genToken(user._id);
+
+
+
+        res.cookie(
+            "token",
+            token,
+            cookieOptions
+        );
 
 
 
         return res.status(200).json({
 
+            success:true,
             message:"Google login successful",
 
             user:{
@@ -246,225 +460,14 @@ export const googleSignup = async(req,res)=>{
 
     } catch(error){
 
-        console.log(error);
 
-        return res.status(500).json({
-            message:`googleSignup Error ${error}`
-        });
-    }
-
-};
-
-
-
-
-
-
-
-
-
-export const sendOtp = async(req,res)=>{
-
-    try {
-
-
-        const {email}=req.body;
-
-
-        const user = await User.findOne({email});
-
-
-        if(!user){
-
-            return res.status(404).json({
-                message:"User not found"
-            });
-        }
-
-
-
-        const otp = Math.floor(
-            1000 + Math.random()*9000
-        ).toString();
-
-
-
-        user.resetOtp = otp;
-
-        user.otpExpires =
-        Date.now()+5*60*1000;
-
-        user.isOtpVerified=false;
-
-
-
-        await user.save();
-
-
-
-        await sendMail(email,otp);
-
-
-
-        return res.status(200).json({
-
-            message:"OTP sent successfully"
-
-        });
-
-
-
-    } catch(error){
-
-        return res.status(500).json({
-            message:`send otp error ${error}`
-        });
-    }
-};
-
-
-
-
-
-
-
-
-
-export const verifyOtp = async(req,res)=>{
-
-
-    try {
-
-
-        const {email,otp}=req.body;
-
-
-
-        const user = await User.findOne({email});
-
-
-
-        if(
-            !user ||
-            user.resetOtp !== otp ||
-            user.otpExpires < Date.now()
-        ){
-
-            return res.status(400).json({
-                message:"Invalid OTP"
-            });
-
-        }
-
-
-
-        user.isOtpVerified=true;
-
-        user.resetOtp=undefined;
-
-        user.otpExpires=undefined;
-
-
-
-        await user.save();
-
-
-
-        return res.status(200).json({
-
-            message:"OTP verified"
-
-        });
-
-
-
-    } catch(error){
-
-        return res.status(500).json({
-            message:`verify otp error ${error}`
-        });
-    }
-
-};
-
-
-
-
-
-
-
-
-
-export const resetPassword = async(req,res)=>{
-
-
-    try {
-
-
-        const {email,password}=req.body;
-
-
-
-        const user = await User.findOne({email});
-
-
-
-        if(
-            !user ||
-            !user.isOtpVerified
-        ){
-
-            return res.status(400).json({
-
-                message:"OTP verification required"
-
-            });
-
-        }
-
-
-
-        if(password.length < 8){
-
-            return res.status(400).json({
-
-                message:"Password must contain minimum 8 characters"
-
-            });
-
-        }
-
-
-
-        const hashPassword =
-        await bcrypt.hash(password,10);
-
-
-
-        user.password = hashPassword;
-
-        user.isOtpVerified=false;
-
-
-
-        await user.save();
-
-
-
-        return res.status(200).json({
-
-            message:"Password Reset Successfully"
-
-        });
-
-
-
-    } catch(error){
+        console.log("Google Login Error:",error);
 
 
         return res.status(500).json({
 
-            message:`Reset Password error ${error}`
+            success:false,
+            message:"Internal server error"
 
         });
 

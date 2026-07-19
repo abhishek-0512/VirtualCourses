@@ -1,92 +1,127 @@
 import mongoose from "mongoose";
 
+
 const userSchema = new mongoose.Schema(
-  {
 
-    name: {
-      type: String,
-      required: true,
-      trim: true
+{
+    name:{
+        type:String,
+        required:[true,"Name is required"],
+        trim:true,
+        minlength:2,
+        maxlength:50
     },
 
 
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true
+    email:{
+        type:String,
+        required:[true,"Email is required"],
+        unique:true,
+        lowercase:true,
+        trim:true
     },
 
 
-    password: {
-      type: String,
-      required: function(){
-        return !this.googleId;
-      }
+    password:{
+        type:String,
+        required:function(){
+            return !this.googleId;
+        },
+        minlength:8,
+        select:false
     },
 
 
-    googleId: {
-      type: String,
-      default: ""
+    googleId:{
+        type:String,
+        default:null,
+        unique:true,
+        sparse:true
     },
 
 
-    description: {
-      type: String,
-      default: ""
+    description:{
+        type:String,
+        default:"",
+        maxlength:500,
+        trim:true
     },
 
 
-    role: {
-      type: String,
-      enum: ["educator", "student"],
-      required: true
+    role:{
+        type:String,
+        enum:["student","educator"],
+        default:"student"
     },
 
 
-    photoUrl: {
-      type: String,
-      default: ""
+    photoUrl:{
+        type:String,
+        default:""
     },
 
 
-    enrolledCourses: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Course"
-      }
+    enrolledCourses:[
+        {
+            type:mongoose.Schema.Types.ObjectId,
+            ref:"Course"
+        }
     ],
 
 
-    resetOtp: {
-      type: String,
-      default: undefined
+    resetOtp:{
+        type:String,
+        default:null
     },
 
 
-    otpExpires: {
-      type: Date,
-      default: undefined
+    otpExpires:{
+        type:Date,
+        default:null
     },
 
 
-    isOtpVerified: {
-      type: Boolean,
-      default: false
+    isOtpVerified:{
+        type:Boolean,
+        default:false
     }
 
-  },
+},
 
-  {
-    timestamps: true
-  }
+{
+    timestamps:true
+}
 
 );
 
 
-const User = mongoose.model("User", userSchema);
+
+// Remove sensitive fields from API response
+userSchema.methods.toJSON=function(){
+
+    const user=this.toObject();
+
+    delete user.password;
+    delete user.resetOtp;
+    delete user.otpExpires;
+    delete user.isOtpVerified;
+
+    return user;
+
+};
+
+
+
+userSchema.index({
+    email:1
+});
+
+
+
+const User = mongoose.model(
+    "User",
+    userSchema
+);
 
 
 export default User;

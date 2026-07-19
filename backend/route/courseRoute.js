@@ -1,26 +1,147 @@
-import express from "express"
-import isAuth from "../middleware/isAuth.js"
-import { createCourse, createLecture, editCourse, editLecture, getCourseById, getCourseLecture, getCreatorById, getCreatorCourses, getPublishedCourses, removeCourse, removeLecture } from "../controller/courseController.js"
-import upload from "../middleware/multer.js"
+import express from "express";
 
-let courseRouter = express.Router()
+import isAuth from "../middleware/isAuth.js";
+import isEducator from "../middleware/isEducator.js";
 
-courseRouter.post("/create",isAuth,createCourse)
-courseRouter.get("/getpublishedcoures",getPublishedCourses)
-courseRouter.get("/getcreatorcourses",isAuth,getCreatorCourses)
-courseRouter.post("/editcourse/:courseId",isAuth,upload.single("thumbnail"),editCourse)
-courseRouter.get("/getcourse/:courseId",isAuth,getCourseById)
-courseRouter.delete("/removecourse/:courseId",isAuth,removeCourse)
-courseRouter.post("/createlecture/:courseId",isAuth,createLecture)
-courseRouter.get("/getcourselecture/:courseId",isAuth,getCourseLecture)
-courseRouter.post("/editlecture/:lectureId",isAuth,upload.single("videoUrl"),editLecture)
-courseRouter.delete("/removelecture/:lectureId",isAuth,removeLecture)
-courseRouter.post("/getcreator",isAuth,getCreatorById)
+import {
+    createCourse,
+    createLecture,
+    editCourse,
+    editLecture,
+    getCourseById,
+    getCourseLecture,
+    getCreatorById,
+    getCreatorCourses,
+    getPublishedCourses,
+    removeCourse,
+    removeLecture
+} from "../controller/courseController.js";
 
-
-
-
+import upload from "../middleware/multer.js";
 
 
+const courseRouter = express.Router();
 
-export default courseRouter
+
+
+// ================= PUBLIC ROUTES =================
+
+
+// All published courses
+courseRouter.get(
+    "/getpublishedcourses",
+    getPublishedCourses
+);
+
+
+// Single course details
+courseRouter.get(
+    "/getcourse/:courseId",
+    getCourseById
+);
+
+
+
+
+// ================= EDUCATOR ROUTES =================
+
+
+// Create course
+courseRouter.post(
+    "/create",
+    isAuth,
+    isEducator,
+    upload.single("thumbnail"),
+    createCourse
+);
+
+
+
+// Get educator courses
+courseRouter.get(
+    "/getcreatorcourses",
+    isAuth,
+    isEducator,
+    getCreatorCourses
+);
+
+
+
+// Edit course
+courseRouter.post(
+    "/editcourse/:courseId",
+    isAuth,
+    isEducator,
+    upload.single("thumbnail"),
+    editCourse
+);
+
+
+
+// Delete course
+courseRouter.delete(
+    "/removecourse/:courseId",
+    isAuth,
+    isEducator,
+    removeCourse
+);
+
+
+
+
+// ================= LECTURE ROUTES =================
+
+
+
+// Create lecture
+courseRouter.post(
+    "/createlecture/:courseId",
+    isAuth,
+    isEducator,
+    createLecture
+);
+
+
+
+// Get course lectures
+courseRouter.get(
+    "/getcourselecture/:courseId",
+    getCourseLecture
+);
+
+
+
+// Edit lecture
+courseRouter.post(
+    "/editlecture/:lectureId",
+    isAuth,
+    isEducator,
+    upload.single("videoUrl"),
+    editLecture
+);
+
+
+
+// Delete lecture
+courseRouter.delete(
+    "/removelecture/:lectureId",
+    isAuth,
+    isEducator,
+    removeLecture
+);
+
+
+
+
+// ================= CREATOR =================
+
+
+courseRouter.post(
+    "/getcreator",
+    isAuth,
+    getCreatorById
+);
+
+
+
+export default courseRouter;

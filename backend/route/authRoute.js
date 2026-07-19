@@ -1,16 +1,76 @@
-import express from "express"
-import {googleSignup, login, logOut, resetPassword, sendOtp, signUp, verifyOtp } from "../controller/authController.js"
+import express from "express";
+import rateLimit from "express-rate-limit";
 
-const authRouter = express.Router()
-
-authRouter.post("/signup",signUp)
-
-authRouter.post("/login",login)
-authRouter.get("/logout",logOut)
-authRouter.post("/googlesignup",googleSignup)
-authRouter.post("/sendotp",sendOtp)
-authRouter.post("/verifyotp",verifyOtp)
-authRouter.post("/resetpassword",resetPassword)
+import {
+    googleSignup,
+    login,
+    logOut,
+    signUp
+} from "../controller/authController.js";
 
 
-export default authRouter
+const authRouter = express.Router();
+
+
+
+/* ==========================================
+            RATE LIMITER
+========================================== */
+
+const authLimiter = rateLimit({
+
+    windowMs:15 * 60 * 1000,
+
+    max:20,
+
+    standardHeaders:true,
+
+    legacyHeaders:false,
+
+    message:{
+        success:false,
+        message:"Too many authentication requests. Try again later."
+    }
+
+});
+
+
+
+
+/* ==========================================
+              AUTH ROUTES
+========================================== */
+
+
+authRouter.post(
+    "/signup",
+    authLimiter,
+    signUp
+);
+
+
+
+authRouter.post(
+    "/login",
+    authLimiter,
+    login
+);
+
+
+
+authRouter.post(
+    "/googlesignup",
+    authLimiter,
+    googleSignup
+);
+
+
+
+authRouter.get(
+    "/logout",
+    logOut
+);
+
+
+
+export default authRouter;

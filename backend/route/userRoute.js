@@ -1,14 +1,27 @@
-import express from "express"
-import isAuth from "../middleware/isAuth.js"
-import { getCurrentUser, UpdateProfile } from "../controller/userController.js"
-import upload from "../middleware/multer.js"
+import express from "express";
+import isAuth from "../middleware/isAuth.js";
+import { getCurrentUser, UpdateProfile } from "../controller/userController.js";
+import upload from "../middleware/multer.js";
 
 
-
-let userRouter = express.Router()
-
-userRouter.get("/currentuser",isAuth,getCurrentUser)
-userRouter.post("/updateprofile",isAuth,upload.single("photoUrl"),UpdateProfile)
+const userRouter = express.Router();
 
 
-export default userRouter
+// Get logged in user
+userRouter.get(
+    "/currentuser",
+    isAuth,
+    getCurrentUser
+);
+
+
+// Update profile
+userRouter.put(
+    "/updateprofile",
+    isAuth,
+    upload.single("photo"),
+    UpdateProfile
+);
+
+
+export default userRouter;
