@@ -1,13 +1,41 @@
-import express from "express"
-import isAuth from "../middleware/isAuth.js"
-import { addReview, getAllReviews } from "../controller/reviewController.js"
+import express from "express";
+
+import isAuth from "../middleware/isAuth.js";
+
+import {
+    addReview,
+    getAllReviews,
+    getCourseReviews
+} from "../controller/reviewController.js";
+
+
+const reviewRouter = express.Router();
 
 
 
-let reviewRouter = express.Router()
+// Add review
+reviewRouter.post(
+    "/add",
+    isAuth,
+    addReview
+);
 
-reviewRouter.post("/givereview",isAuth,addReview)
-reviewRouter.get("/allReview",getAllReviews)
 
 
-export default reviewRouter
+// Get reviews of a course
+reviewRouter.get(
+    "/course/:courseId",
+    getCourseReviews
+);
+
+
+
+// Get all reviews
+reviewRouter.get(
+    "/all",
+    getAllReviews
+);
+
+
+
+export default reviewRouter;
