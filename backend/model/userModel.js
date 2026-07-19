@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 
 
 const userSchema = new mongoose.Schema(
-
 {
     name:{
         type:String,
@@ -50,8 +49,12 @@ const userSchema = new mongoose.Schema(
 
     role:{
         type:String,
-        enum:["student","educator"],
-        default:"student"
+        enum:[
+            "student",
+            "educator"
+        ],
+        default:"student",
+        required:true
     },
 
 
@@ -87,34 +90,29 @@ const userSchema = new mongoose.Schema(
     }
 
 },
-
 {
     timestamps:true
-}
-
-);
+});
 
 
 
-// Remove sensitive fields from API response
+
+// Remove sensitive data before sending response
+
 userSchema.methods.toJSON=function(){
 
     const user=this.toObject();
+
 
     delete user.password;
     delete user.resetOtp;
     delete user.otpExpires;
     delete user.isOtpVerified;
 
+
     return user;
 
 };
-
-
-
-userSchema.index({
-    email:1
-});
 
 
 

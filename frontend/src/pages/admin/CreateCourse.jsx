@@ -2,87 +2,120 @@ import axios from "axios";
 import React, { useState } from "react";
 import { FaArrowLeftLong } from "react-icons/fa6";
 import { useNavigate } from "react-router-dom";
-import { serverUrl } from "../../App";
 import { toast } from "react-toastify";
 import { ClipLoader } from "react-spinners";
-const CreateCourse = () => {
-    let navigate = useNavigate()
-    let [loading,setLoading]=useState(false)
-    const [title,setTitle] = useState("") 
-    const [category,setCategory] = useState("")
+import { serverUrl } from "../../App";
 
-    const CreateCourseHandler = async () => {
-        setLoading(true)
-        try {
-            const result = await axios.post(serverUrl + "/api/course/create" , {title , category} , {withCredentials:true})
-            console.log(result.data)
-            toast.success("Course Created")
-            navigate("/courses")
-            setTitle("")
-            setLoading(false)
-        } catch (error) {
-            console.log(error)
-            setLoading(false)
-            toast.error(error.response.data.message)
-        }
-        
+const CreateCourse = () => {
+  const navigate = useNavigate();
+
+  const [loading, setLoading] = useState(false);
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("");
+
+  const CreateCourseHandler = async () => {
+    if (!title || !category) {
+      return toast.error("Please fill all fields");
     }
 
-    return (
-        
-        <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-10">
-            <div className="max-w-xl w-[600px] mx-auto p-6 bg-white shadow-md rounded-md mt-10 relative">
-                <FaArrowLeftLong  className='top-[8%] absolute left-[5%] w-[22px] h-[22px] cursor-pointer' onClick={()=>navigate("/courses")}/>
-                <h2 className="text-2xl font-semibold mb-6 text-center">Create Course</h2>
+    try {
+      setLoading(true);
 
-                <form className="space-y-5" onSubmit={(e)=>e.preventDefault()}>
-                    {/* Course Title */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Course Title
-                        </label>
-                        <input
-                            type="text"
-                            placeholder="Enter course title"
-                            className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[black]"
-                            onChange={(e)=>setTitle(e.target.value)} value={title}
-                        />
-                    </div>
+      const { data } = await axios.post(
+        `${serverUrl}/api/course/create`,
+        {
+          title,
+          category,
+        },
+        {
+          withCredentials: true,
+        }
+      );
 
-                    {/* Category */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Category
-                        </label>
-                        <select
-                            className="w-full border border-gray-300 rounded-md px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[black]"
-                            onChange={(e)=>setCategory(e.target.value)}
-                        >
-                            <option value="">Select category</option>
-                            <option value="App Development">App Development</option>
-                             <option value="AI/ML">AI/ML</option>
-                            <option value="AI Tools">AI Tools
-                            </option>
-                             <option value="Data Science">Data Science</option>
-                            <option value="Data Analytics">Data Analytics</option>
-                            <option value="Ethical Hacking">Ethical Hacking</option>
-                            <option value="UI UX Designing">UI UX Designing</option>
-                            <option value="Web Development">Web Development</option>
-                            <option value="Others">Others</option>
-                        </select>
-                    </div>
+      console.log(data);
 
-                    {/* Submit Button */}
-                    <button
-                        type="submit"
-                        className="w-full bg-[black] text-white py-2 px-4 rounded-md active:bg-[#3a3a3a] transition" disabled={loading} onClick={CreateCourseHandler}
-                    >
-                        {loading?<ClipLoader size={30} color='white' /> : "Create"}
-                    </button>
-                </form>
-            </div>
-        </div>
-    );
+      toast.success(data.message || "Course Created Successfully");
+
+      setTitle("");
+      setCategory("");
+
+      navigate("/courses");
+    } catch (error) {
+      console.log(error);
+
+      toast.error(
+        error.response?.data?.message || "Failed to create course"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-10">
+      <div className="relative w-full max-w-xl rounded-lg bg-white p-8 shadow-lg">
+        <FaArrowLeftLong
+          onClick={() => navigate("/courses")}
+          className="absolute left-6 top-7 h-6 w-6 cursor-pointer"
+        />
+
+        <h1 className="mb-8 text-center text-3xl font-bold">
+          Create Course
+        </h1>
+
+        <form
+          onSubmit={(e) => e.preventDefault()}
+          className="space-y-6"
+        >
+          <div>
+            <label className="mb-2 block font-medium">
+              Course Title
+            </label>
+
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter Course Title"
+              className="w-full rounded-md border px-4 py-2 outline-none focus:ring-2 focus:ring-black"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block font-medium">
+              Category
+            </label>
+
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full rounded-md border px-4 py-2 outline-none focus:ring-2 focus:ring-black"
+            >
+              <option value="">Select Category</option>
+              <option value="Web Development">Web Development</option>
+              <option value="Data Science">Data Science</option>
+              <option value="AI">AI</option>
+              <option value="Mobile Development">Mobile Development</option>
+              <option value="Programming">Programming</option>
+              <option value="Others">Others</option>
+            </select>
+          </div>
+
+          <button
+            onClick={CreateCourseHandler}
+            disabled={loading}
+            className="flex w-full items-center justify-center rounded-md bg-black py-3 text-white transition hover:bg-gray-900"
+          >
+            {loading ? (
+              <ClipLoader size={25} color="white" />
+            ) : (
+              "Create Course"
+            )}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
 };
 
 export default CreateCourse;

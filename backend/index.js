@@ -1,5 +1,4 @@
-import dotenv from "dotenv";
-dotenv.config();
+import "dotenv/config";
 
 import express from "express";
 import cookieParser from "cookie-parser";
@@ -44,7 +43,6 @@ app.use(
     })
 );
 
-
 app.use(cookieParser());
 
 
@@ -69,7 +67,6 @@ app.use(
 
         origin:(origin,callback)=>{
 
-
             if(
                 !origin ||
                 allowedOrigins.includes(origin)
@@ -88,7 +85,6 @@ app.use(
 
         },
 
-
         credentials:true
 
     })
@@ -102,34 +98,15 @@ app.use(
 =========================== */
 
 
-app.use(
-    "/api/auth",
-    authRouter
-);
+app.use("/api/auth", authRouter);
 
+app.use("/api/user", userRouter);
 
-app.use(
-    "/api/user",
-    userRouter
-);
+app.use("/api/course", courseRouter);
 
+app.use("/api/review", reviewRouter);
 
-app.use(
-    "/api/course",
-    courseRouter
-);
-
-
-app.use(
-    "/api/review",
-    reviewRouter
-);
-
-
-app.use(
-    "/api/ai",
-    aiRouter
-);
+app.use("/api/ai", aiRouter);
 
 
 
@@ -140,20 +117,17 @@ app.use(
 =========================== */
 
 
-app.get(
-    "/",
-    (req,res)=>{
+app.get("/",(req,res)=>{
 
-        res.status(200).json({
+    res.status(200).json({
 
-            success:true,
+        success:true,
 
-            message:"Virtual Courses API is running 🚀"
+        message:"Virtual Courses API is running 🚀"
 
-        });
+    });
 
-    }
-);
+});
 
 
 
@@ -164,19 +138,17 @@ app.get(
 =========================== */
 
 
-app.use(
-    (req,res)=>{
+app.use((req,res)=>{
 
-        res.status(404).json({
+    res.status(404).json({
 
-            success:false,
+        success:false,
 
-            message:"Route not found"
+        message:"Route not found"
 
-        });
+    });
 
-    }
-);
+});
 
 
 
@@ -187,30 +159,28 @@ app.use(
 =========================== */
 
 
-app.use(
-    (err,req,res,next)=>{
-
-        console.error(
-            "Global Error:",
-            err.message
-        );
+app.use((err,req,res,next)=>{
 
 
-        res.status(
-            err.status || 500
-        )
-        .json({
+    console.error(
+        "Global Error:",
+        err.message
+    );
 
-            success:false,
 
-            message:
-            err.message ||
-            "Internal Server Error"
+    res.status(err.status || 500)
+    .json({
 
-        });
+        success:false,
 
-    }
-);
+        message:
+        err.message ||
+        "Internal Server Error"
+
+    });
+
+
+});
 
 
 
@@ -225,9 +195,7 @@ const startServer = async()=>{
 
     try{
 
-
         await connectDb();
-
 
 
         app.listen(
@@ -242,16 +210,13 @@ const startServer = async()=>{
         );
 
 
-
     }
     catch(error){
-
 
         console.error(
             "Failed to start server:",
             error
         );
-
 
         process.exit(1);
 

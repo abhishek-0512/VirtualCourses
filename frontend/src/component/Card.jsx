@@ -1,89 +1,69 @@
-import React from "react";
-import { FaStar } from "react-icons/fa";
+import React, { useEffect, useState } from "react";
+import Card from "./Card.jsx";
+import { useSelector } from "react-redux";
+import { SiViaplay } from "react-icons/si";
 import { useNavigate } from "react-router-dom";
 
-const CourseCard = ({ thumbnail, title, category, price, id, reviews }) => {
-
+function Cardspage() {
   const navigate = useNavigate();
 
+  // Get courses safely from Redux
+  const courseData = useSelector((state) => state.course.courseData) || [];
 
-  const calculateAverageRating = (reviews) => {
-    if (!reviews || reviews.length === 0) return 0;
+  const [popularCourses, setPopularCourses] = useState([]);
 
-    const total = reviews.reduce(
-      (sum, review) => sum + review.rating,
-      0
-    );
+  useEffect(() => {
+    console.log("Redux Course Data:", courseData);
 
-    return (total / reviews.length).toFixed(1);
-  };
-
-
-  const avgRating = calculateAverageRating(reviews);
-
+    if (Array.isArray(courseData)) {
+      setPopularCourses(courseData.slice(0, 6));
+    } else {
+      setPopularCourses([]);
+    }
+  }, [courseData]);
 
   return (
-    <div
-      className="max-w-sm w-full bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 border border-gray-300 cursor-pointer"
-      onClick={() => navigate(`/viewcourse/${id}`)}
-    >
+    <div className="relative flex items-center justify-center flex-col">
+      <h1 className="md:text-[45px] text-[30px] font-semibold text-center mt-[30px] px-[20px]">
+        Our Popular Courses
+      </h1>
 
+      <span className="lg:w-[50%] md:w-[80%] text-[15px] text-center mt-[30px] mb-[30px] px-[20px]">
+        Explore top-rated courses designed to boost your skills, enhance
+        careers, and unlock opportunities in tech, AI, business, and beyond.
+      </span>
 
-      {/* Thumbnail */}
-      <div className="w-full h-52 bg-gray-100 overflow-hidden flex items-center justify-center">
-
-        <img
-          src={thumbnail || "/default-course.png"}
-          alt={title || "Course thumbnail"}
-          className="w-full h-full object-contain"
-        />
-
+      <div className="w-full min-h-screen flex items-center justify-center flex-wrap gap-[50px] lg:p-[50px] md:p-[30px] p-[10px] mb-[40px]">
+        {popularCourses.length > 0 ? (
+          popularCourses.map((item) => (
+            <Card
+              key={item._id}
+              id={item._id}
+              thumbnail={item.thumbnail}
+              title={item.title}
+              price={item.price}
+              category={item.category}
+              reviews={item.reviews}
+            />
+          ))
+        ) : (
+          <div className="text-center py-10">
+            <h2 className="text-xl font-semibold text-gray-600">
+              No Courses Available
+            </h2>
+          </div>
+        )}
       </div>
 
-
-
-      {/* Content */}
-      <div className="p-5 space-y-2">
-
-
-        {/* Title */}
-        <h2 className="text-lg font-semibold text-gray-900">
-          {title}
-        </h2>
-
-
-
-        {/* Category */}
-        <span className="px-2 py-0.5 bg-gray-100 rounded-full text-gray-700 capitalize">
-          {category}
-        </span>
-
-
-
-        {/* Meta info */}
-        <div className="flex justify-between text-sm text-gray-600 mt-3 px-[10px]">
-
-
-          <span className="font-semibold text-gray-800">
-            ₹{price}
-          </span>
-
-
-          <span className="flex items-center gap-1">
-            <FaStar className="text-yellow-500" />
-            {avgRating}
-          </span>
-
-
-        </div>
-
-
-      </div>
-
-
+      <button
+        className="absolute right-[9%] bottom-2 px-[20px] py-[10px] border-2 lg:border-white border-black bg-black lg:text-white text-black rounded-[10px] text-[18px] font-light flex items-center gap-2"
+        onClick={() => navigate("/allcourses")}
+      >
+        View all Courses
+        <SiViaplay className="w-[30px] h-[30px] lg:fill-white fill-black" />
+      </button>
     </div>
   );
-};
+}
 
-
-export default CourseCard;
+export default Cardspage;

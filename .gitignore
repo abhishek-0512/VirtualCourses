@@ -1,7 +1,18 @@
-
-
 node_modules/
+
+# Environment files
 .env
 .env.*
+
+# Uploaded files
 uploads/
+
+# Build files
 dist/
+
+# OS files
+.DS_Store
+
+# Backup files
+project/
+project.zip

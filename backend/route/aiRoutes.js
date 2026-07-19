@@ -1,8 +1,22 @@
-import express from "express"
-import { searchWithAi } from "../controller/aiController.js"
+import express from "express";
 
-let aiRouter = express.Router()
+import isAuth from "../middleware/isAuth.js";
 
-aiRouter.post("/search",searchWithAi)
+import {
+    searchWithAi
+} from "../controller/aiController.js";
 
-export default aiRouter
+
+const aiRouter = express.Router();
+
+
+
+aiRouter.post(
+    "/search",
+    isAuth,
+    searchWithAi
+);
+
+
+
+export default aiRouter;

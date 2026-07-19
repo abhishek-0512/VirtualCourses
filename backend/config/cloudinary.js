@@ -2,61 +2,66 @@ import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
 
 
-console.log("Cloudinary Config Check:");
-console.log("Cloud Name:", process.env.CLOUDINARY_CLOUD_NAME);
-console.log("API Key:", process.env.CLOUDINARY_API_KEY);
-console.log("API Secret:", process.env.CLOUDINARY_API_SECRET ? "Loaded" : "Missing");
+if(
+    !process.env.CLOUDINARY_CLOUD_NAME ||
+    !process.env.CLOUDINARY_API_KEY ||
+    !process.env.CLOUDINARY_API_SECRET
+){
+
+    console.log(
+        "Cloudinary environment variables missing"
+    );
+
+}
 
 
 
 cloudinary.config({
 
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    cloud_name:
+    process.env.CLOUDINARY_CLOUD_NAME,
 
-    api_key: process.env.CLOUDINARY_API_KEY,
 
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+    api_key:
+    process.env.CLOUDINARY_API_KEY,
+
+
+    api_secret:
+    process.env.CLOUDINARY_API_SECRET
 
 });
 
 
 
-const uploadOnCloudinary = async (filePath) => {
 
-    try {
+const uploadOnCloudinary = async(filePath)=>{
+
+    try{
 
 
-        if (!filePath) {
+        if(!filePath){
 
-            console.log("❌ No file path received.");
-
-            return "";
+            throw new Error(
+                "File path not found"
+            );
 
         }
 
 
 
-        console.log("📂 Uploading file:", filePath);
-
-
-
-        const uploadResult = await cloudinary.uploader.upload(
+        const result =
+        await cloudinary.uploader.upload(
             filePath,
             {
-                resource_type: "auto",
-                folder: "VirtualCourses",
+                folder:"VirtualCourses",
+                resource_type:"auto"
             }
         );
 
 
 
-        console.log("✅ Cloudinary Upload Success");
-
-        console.log("🌐 URL:", uploadResult.secure_url);
-
-
-
-        if (fs.existsSync(filePath)) {
+        // Remove temporary file
+        if(fs.existsSync(filePath)){
 
             fs.unlinkSync(filePath);
 
@@ -64,24 +69,29 @@ const uploadOnCloudinary = async (filePath) => {
 
 
 
-        return uploadResult.secure_url;
+        return result.secure_url;
 
 
 
-    } catch (error) {
+    }
+    catch(error){
 
 
-        console.log("❌ Cloudinary Upload Failed");
+        console.log(
+            "Cloudinary Error:",
+            error.message
+        );
 
-        console.log(error.message);
 
-
-
-        if (filePath && fs.existsSync(filePath)) {
+        if(
+            filePath &&
+            fs.existsSync(filePath)
+        ){
 
             fs.unlinkSync(filePath);
 
         }
+
 
 
         return "";
@@ -89,6 +99,7 @@ const uploadOnCloudinary = async (filePath) => {
     }
 
 };
+
 
 
 export default uploadOnCloudinary;

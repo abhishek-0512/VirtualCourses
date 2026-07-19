@@ -132,6 +132,7 @@ const courseSchema = new mongoose.Schema(
         sparse:true
     }
 
+
 },
 
 {
@@ -142,34 +143,66 @@ const courseSchema = new mongoose.Schema(
 
 
 
-// Create slug automatically
 
-courseSchema.pre(
-    "save",
-    function(next){
+// ===============================
+// CREATE UNIQUE SLUG
+// ===============================
 
-        if(this.isModified("title")){
+courseSchema.pre("save", async function(next){
 
-            this.slug = this.title
-                .toLowerCase()
-                .trim()
-                .replace(/[^a-z0-9]+/g,"-")
-                .replace(/^-+|-+$/g,"");
+
+    if(this.isModified("title")){
+
+
+        let slug = this.title
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]+/g,"-")
+            .replace(/^-+|-+$/g,"");
+
+
+
+        const existingCourse =
+            await mongoose.model("Course")
+            .findOne({
+                slug
+            });
+
+
+
+        if(
+            existingCourse &&
+            existingCourse._id.toString() !== this._id.toString()
+        ){
+
+            slug = `${slug}-${Date.now()}`;
 
         }
 
-        next();
+
+
+        this.slug = slug;
 
     }
-);
+
+
+    next();
+
+});
 
 
 
-// Search optimization
+
+// ===============================
+// SEARCH INDEX
+// ===============================
 
 courseSchema.index({
+
     title:"text",
+
     description:"text"
+
 });
 
 
