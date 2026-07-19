@@ -24,17 +24,16 @@ const courseRouter = express.Router();
 
 
 
-// ================= PUBLIC ROUTES =================
+// ================= PUBLIC =================
 
 
-// All published courses
 courseRouter.get(
     "/getpublishedcourses",
     getPublishedCourses
 );
 
 
-// Single course details
+
 courseRouter.get(
     "/getcourse/:courseId",
     getCourseById
@@ -42,11 +41,9 @@ courseRouter.get(
 
 
 
+// ================= COURSE =================
 
-// ================= EDUCATOR ROUTES =================
 
-
-// Create course
 courseRouter.post(
     "/create",
     isAuth,
@@ -57,7 +54,6 @@ courseRouter.post(
 
 
 
-// Get educator courses
 courseRouter.get(
     "/getcreatorcourses",
     isAuth,
@@ -67,8 +63,7 @@ courseRouter.get(
 
 
 
-// Edit course
-courseRouter.post(
+courseRouter.put(
     "/editcourse/:courseId",
     isAuth,
     isEducator,
@@ -78,7 +73,6 @@ courseRouter.post(
 
 
 
-// Delete course
 courseRouter.delete(
     "/removecourse/:courseId",
     isAuth,
@@ -88,12 +82,9 @@ courseRouter.delete(
 
 
 
-
-// ================= LECTURE ROUTES =================
-
+// ================= LECTURES =================
 
 
-// Create lecture
 courseRouter.post(
     "/createlecture/:courseId",
     isAuth,
@@ -103,7 +94,6 @@ courseRouter.post(
 
 
 
-// Get course lectures
 courseRouter.get(
     "/getcourselecture/:courseId",
     getCourseLecture
@@ -111,18 +101,16 @@ courseRouter.get(
 
 
 
-// Edit lecture
-courseRouter.post(
+courseRouter.put(
     "/editlecture/:lectureId",
     isAuth,
     isEducator,
-    upload.single("videoUrl"),
+    upload.single("video"),
     editLecture
 );
 
 
 
-// Delete lecture
 courseRouter.delete(
     "/removelecture/:lectureId",
     isAuth,
@@ -132,13 +120,11 @@ courseRouter.delete(
 
 
 
-
 // ================= CREATOR =================
 
 
-courseRouter.post(
-    "/getcreator",
-    isAuth,
+courseRouter.get(
+    "/getcreator/:userId",
     getCreatorById
 );
 
