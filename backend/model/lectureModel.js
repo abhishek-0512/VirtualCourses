@@ -1,96 +1,102 @@
 import mongoose from "mongoose";
 
-
 const lectureSchema = new mongoose.Schema(
-
-{
-
-    lectureTitle:{
-        type:String,
-        required:true,
-        trim:true,
-        maxlength:100
+  {
+    lectureTitle: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 100,
     },
 
-
-    description:{
-        type:String,
-        default:"",
-        trim:true
+    description: {
+      type: String,
+      default: "",
+      trim: true,
     },
 
-
-    videoUrl:{
-        type:String,
-        default:""
+    // Cloudinary Video URL
+    videoUrl: {
+      type: String,
+      default: "",
     },
 
-
-    duration:{
-        type:Number,
-        default:0
+    // Cloudinary Public ID
+    videoPublicId: {
+      type: String,
+      default: "",
     },
 
-
-    order:{
-        type:Number,
-        default:0
+    // Duration in seconds
+    duration: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
 
-
-    isPreviewFree:{
-        type:Boolean,
-        default:false
+    // Lecture Order
+    order: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
 
+    // Preview without enrollment
+    isPreviewFree: {
+      type: Boolean,
+      default: false,
+    },
 
-    resources:[
-        {
-            title:{
-                type:String
-            },
+    // Downloadable Resources
+    resources: [
+      {
+        title: {
+          type: String,
+          trim: true,
+        },
 
-            url:{
-                type:String
-            }
-        }
+        url: {
+          type: String,
+          trim: true,
+        },
+      },
     ],
 
-
-    course:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"Course",
-        required:true
+    // Parent Course
+    course: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Course",
+      required: true,
+      index: true,
     },
 
-
-    creator:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"User",
-        required:true
-    }
-
-},
-
-{
-    timestamps:true
-}
-
+    // Educator
+    creator: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
+  }
 );
 
+/* ===========================================================
+        UNIQUE LECTURE ORDER INSIDE A COURSE
+=========================================================== */
 
-
-// Faster lecture fetching
-lectureSchema.index({
-    course:1,
-    order:1
-});
-
-
-const Lecture = mongoose.model(
-    "Lecture",
-    lectureSchema
+lectureSchema.index(
+  {
+    course: 1,
+    order: 1,
+  },
+  {
+    unique: true,
+  }
 );
 
+const Lecture = mongoose.model("Lecture", lectureSchema);
 
 export default Lecture;

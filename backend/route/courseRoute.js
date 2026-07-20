@@ -1,133 +1,62 @@
 import express from "express";
-
+import upload from "../middleware/multer.js";
 import isAuth from "../middleware/isAuth.js";
 import isEducator from "../middleware/isEducator.js";
 
 import {
-    createCourse,
-    createLecture,
-    editCourse,
-    editLecture,
-    getCourseById,
-    getCourseLecture,
-    getCreatorById,
-    getCreatorCourses,
-    getPublishedCourses,
-    removeCourse,
-    removeLecture
+  createCourse,
+  editCourse,
+  getPublishedCourses,
+  getCreatorCourses,
+  getCourseById,
+  removeCourse,
+  getCreatorById,
 } from "../controller/courseController.js";
 
-import upload from "../middleware/multer.js";
+const router = express.Router();
 
+/* ==========================================
+            PUBLIC ROUTES
+========================================== */
 
-const courseRouter = express.Router();
+router.get("/published", getPublishedCourses);
 
+router.get("/:courseId", getCourseById);
 
+router.get("/creator/:userId", getCreatorById);
 
-// ================= PUBLIC =================
+/* ==========================================
+            EDUCATOR ROUTES
+========================================== */
 
-
-courseRouter.get(
-    "/getpublishedcourses",
-    getPublishedCourses
+router.post(
+  "/create",
+  isAuth,
+  isEducator,
+  upload.single("thumbnail"),
+  createCourse
 );
 
-
-
-courseRouter.get(
-    "/getcourse/:courseId",
-    getCourseById
+router.get(
+  "/creator/courses",
+  isAuth,
+  isEducator,
+  getCreatorCourses
 );
 
-
-
-// ================= COURSE =================
-
-
-courseRouter.post(
-    "/create",
-    isAuth,
-    isEducator,
-    upload.single("thumbnail"),
-    createCourse
+router.put(
+  "/:courseId",
+  isAuth,
+  isEducator,
+  upload.single("thumbnail"),
+  editCourse
 );
 
-
-
-courseRouter.get(
-    "/getcreatorcourses",
-    isAuth,
-    isEducator,
-    getCreatorCourses
+router.delete(
+  "/:courseId",
+  isAuth,
+  isEducator,
+  removeCourse
 );
 
-
-
-courseRouter.put(
-    "/editcourse/:courseId",
-    isAuth,
-    isEducator,
-    upload.single("thumbnail"),
-    editCourse
-);
-
-
-
-courseRouter.delete(
-    "/removecourse/:courseId",
-    isAuth,
-    isEducator,
-    removeCourse
-);
-
-
-
-// ================= LECTURES =================
-
-
-courseRouter.post(
-    "/createlecture/:courseId",
-    isAuth,
-    isEducator,
-    createLecture
-);
-
-
-
-courseRouter.get(
-    "/getcourselecture/:courseId",
-    getCourseLecture
-);
-
-
-
-courseRouter.put(
-    "/editlecture/:lectureId",
-    isAuth,
-    isEducator,
-    upload.single("video"),
-    editLecture
-);
-
-
-
-courseRouter.delete(
-    "/removelecture/:lectureId",
-    isAuth,
-    isEducator,
-    removeLecture
-);
-
-
-
-// ================= CREATOR =================
-
-
-courseRouter.get(
-    "/getcreator/:userId",
-    getCreatorById
-);
-
-
-
-export default courseRouter;
+export default router;
