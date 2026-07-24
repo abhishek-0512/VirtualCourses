@@ -474,3 +474,37 @@ export const googleSignup = async(req,res)=>{
     }
 
 };
+/* ==========================================
+              GET CURRENT USER
+========================================== */
+
+export const getCurrentUser = async (req, res) => {
+    try {
+
+        const user = await User.findById(req.userId)
+            .select("-password")
+            .populate("enrolledCourses");
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            user
+        });
+
+    } catch (error) {
+
+        console.log("Get Current User Error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+
+    }
+};

@@ -5,32 +5,55 @@ import { serverUrl } from "../App";
 import { setCourseData } from "../redux/courseSlice";
 
 const useGetCourseData = () => {
+
   const dispatch = useDispatch();
 
+
   useEffect(() => {
-    console.log("HOOK STARTED");
 
     const getAllPublishedCourses = async () => {
+
       try {
+
         const { data } = await axios.get(
-          serverUrl + "/api/course/getpublishedcourses",
+          `${serverUrl}/api/course/published`,
           {
             withCredentials: true,
           }
         );
 
-        console.log("API DATA:", data);
 
-        dispatch(setCourseData(data));
+        console.log("Published Courses API:", data);
 
-        console.log("DISPATCH DONE");
+
+        if (data.success) {
+
+          dispatch(
+            setCourseData(data.courses)
+          );
+
+        }
+
+
       } catch (error) {
-        console.log("ERROR:", error);
+
+        console.log(
+          "Get Course Error:",
+          error.response?.data || error
+        );
+
       }
+
     };
 
+
     getAllPublishedCourses();
+
+
   }, [dispatch]);
+
+
 };
+
 
 export default useGetCourseData;

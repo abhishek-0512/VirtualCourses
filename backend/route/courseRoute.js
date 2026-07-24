@@ -19,16 +19,14 @@ const router = express.Router();
             PUBLIC ROUTES
 ========================================== */
 
+// Get all published courses
 router.get("/published", getPublishedCourses);
-
-router.get("/:courseId", getCourseById);
-
-router.get("/creator/:userId", getCreatorById);
 
 /* ==========================================
             EDUCATOR ROUTES
 ========================================== */
 
+// Create Course
 router.post(
   "/create",
   isAuth,
@@ -37,6 +35,8 @@ router.post(
   createCourse
 );
 
+// Get Logged-in Educator Courses
+// IMPORTANT: Keep this BEFORE /creator/:userId
 router.get(
   "/creator/courses",
   isAuth,
@@ -44,6 +44,17 @@ router.get(
   getCreatorCourses
 );
 
+/* ==========================================
+            PUBLIC ROUTES
+========================================== */
+
+// Get creator profile
+router.get(
+  "/creator/:userId",
+  getCreatorById
+);
+
+// Update Course
 router.put(
   "/:courseId",
   isAuth,
@@ -52,11 +63,19 @@ router.put(
   editCourse
 );
 
+// Delete Course
 router.delete(
   "/:courseId",
   isAuth,
   isEducator,
   removeCourse
+);
+
+// Get Course By ID
+// KEEP THIS LAST
+router.get(
+  "/:courseId",
+  getCourseById
 );
 
 export default router;

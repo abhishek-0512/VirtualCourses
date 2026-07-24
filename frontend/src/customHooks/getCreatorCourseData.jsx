@@ -1,39 +1,88 @@
 import { useEffect } from "react";
 import axios from "axios";
-import { useDispatch, useSelector } from "react-redux";
-import { toast } from "react-toastify";
-
+import { useDispatch } from "react-redux";
 import { serverUrl } from "../App";
 import { setCreatorCourseData } from "../redux/courseSlice";
 
+
 const useGetCreatorCourseData = () => {
+
+
   const dispatch = useDispatch();
-  const { userData } = useSelector((state) => state.user);
+
+
 
   useEffect(() => {
-    const getCreatorData = async () => {
+
+
+    const getCreatorCourses = async () => {
+
+
       try {
+
+
         const { data } = await axios.get(
-          `${serverUrl}/api/course/getcreatorcourses`,
+
+          `${serverUrl}/api/course/creator/courses`,
+
           {
-            withCredentials: true,
+            withCredentials:true
           }
+
         );
 
-        dispatch(setCreatorCourseData(data));
-      } catch (error) {
-        console.error(error);
 
-        toast.error(
-          error.response?.data?.message || "Failed to load creator courses."
+        console.log(
+          "Creator Course API:",
+          data
         );
+
+
+
+        if(data.success){
+
+
+          dispatch(
+
+            setCreatorCourseData(
+              data.courses
+            )
+
+          );
+
+
+        }
+
+
+
       }
+      catch(error){
+
+
+        console.log(
+
+          "Creator Course Error:",
+          error.response?.data || error
+
+        );
+
+
+      }
+
+
     };
 
-    if (userData?.role === "educator") {
-      getCreatorData();
-    }
-  }, [dispatch, userData]);
+
+
+    getCreatorCourses();
+
+
+
+  },[dispatch]);
+
+
+
 };
+
 
 export default useGetCreatorCourseData;

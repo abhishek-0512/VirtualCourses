@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import Card from "./Card.jsx";
 import { useSelector } from "react-redux";
-import { SiViaplay } from "react-icons/si";
 import { useNavigate } from "react-router-dom";
+import { SiViaplay } from "react-icons/si";
+import Card from "./Card";
 
 function Cardspage() {
   const navigate = useNavigate();
@@ -12,8 +12,6 @@ function Cardspage() {
   const [popularCourses, setPopularCourses] = useState([]);
 
   useEffect(() => {
-    console.log("Redux Course Data:", courseData);
-
     if (Array.isArray(courseData)) {
       setPopularCourses(courseData.slice(0, 6));
     } else {
@@ -22,40 +20,47 @@ function Cardspage() {
   }, [courseData]);
 
   return (
-    <div className="relative flex items-center justify-center flex-col">
-      <h1 className="md:text-[45px] text-[30px] font-semibold text-center mt-[30px] px-[20px]">
+    <div className="relative flex flex-col items-center px-4 py-10">
+      {/* Heading */}
+      <h1 className="text-3xl md:text-5xl font-bold text-center">
         Our Popular Courses
       </h1>
 
-      <span className="lg:w-[50%] md:w-[80%] text-[15px] text-center mt-[30px] mb-[30px] px-[20px]">
+      <p className="max-w-3xl text-center text-gray-600 mt-6 mb-10">
         Explore top-rated courses designed to boost your skills, enhance
         careers, and unlock opportunities in tech, AI, business, and beyond.
-      </span>
+      </p>
 
-      <div className="w-full min-h-screen flex items-center justify-center flex-wrap gap-[50px] lg:p-[50px] md:p-[30px] p-[10px] mb-[40px]">
+      {/* Course Cards */}
+      <div className="w-full flex flex-wrap justify-center gap-8">
         {popularCourses.length > 0 ? (
-          popularCourses.map((item) => (
+          popularCourses.map((course) => (
             <Card
-              key={item._id}
-              id={item._id}
-              thumbnail={item.thumbnail}
-              title={item.title}
-              price={item.price}
-              category={item.category}
-              reviews={item.reviews}
+              key={course._id}
+              id={course._id}
+              thumbnail={course.thumbnail}
+              title={course.title}
+              price={course.price}
+              category={course.category}
+              reviews={course.reviews}
             />
           ))
         ) : (
-          <h2 className="text-gray-500 text-xl">No Courses Available</h2>
+          <div className="text-center py-20">
+            <h2 className="text-xl font-semibold text-gray-600">
+              No Courses Available
+            </h2>
+          </div>
         )}
       </div>
 
+      {/* View All Button */}
       <button
-        className="absolute right-[9%] bottom-2 px-[20px] py-[10px] border-2 lg:border-white border-black bg-black lg:text-white text-black rounded-[10px] text-[18px] font-light flex gap-2 cursor-pointer"
         onClick={() => navigate("/allcourses")}
+        className="mt-12 flex items-center gap-2 bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition"
       >
-        View all Courses
-        <SiViaplay className="w-[30px] h-[30px] lg:fill-white fill-black" />
+        View All Courses
+        <SiViaplay className="w-5 h-5" />
       </button>
     </div>
   );

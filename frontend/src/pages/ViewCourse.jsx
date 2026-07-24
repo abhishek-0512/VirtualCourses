@@ -3,13 +3,12 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import { serverUrl } from "../App";
-import { FaArrowLeftLong } from "react-icons/fa6";
-import img from "../assets/empty.jpg";
-import Card from "../component/Card.jsx";
 import { setSelectedCourseData } from "../redux/courseSlice";
-import { FaLock, FaPlayCircle } from "react-icons/fa";
 import { toast } from "react-toastify";
-import { FaStar } from "react-icons/fa6";
+import { FaArrowLeftLong } from "react-icons/fa6";
+import { FaLock, FaPlayCircle, FaStar } from "react-icons/fa";
+import Card from "../component/Card.jsx";
+import img from "../assets/empty.jpg";
 
 
 function ViewCourse() {
@@ -21,66 +20,128 @@ function ViewCourse() {
   const dispatch = useDispatch();
 
 
-  const { courseData, selectedCourseData } = useSelector(
-    state => state.course
+  const {
+    courseData = [],
+    selectedCourseData
+  } = useSelector(
+    (state) => state.course
   );
+
 
   const { userData } = useSelector(
-    state => state.user
+    (state) => state.user
   );
 
 
-  const [creatorData, setCreatorData] = useState(null);
-
-  const [selectedLecture, setSelectedLecture] = useState(null);
-
-  const [selectedCreatorCourse, setSelectedCreatorCourse] = useState([]);
-
-  const [isEnrolled, setIsEnrolled] = useState(false);
-
-  const [rating, setRating] = useState(0);
-
-  const [comment, setComment] = useState("");
+  const [creatorData,setCreatorData] =
+    useState(null);
 
 
+  const [selectedLecture,setSelectedLecture] =
+    useState(null);
 
-  // ---------------- Average Rating ----------------
 
-  const calculateAverageRating = (reviews) => {
+  const [selectedCreatorCourse,setSelectedCreatorCourse] =
+    useState([]);
 
-    if (!reviews || reviews.length === 0) {
+
+  const [isEnrolled,setIsEnrolled] =
+    useState(false);
+
+
+  const [rating,setRating] =
+    useState(0);
+
+
+  const [comment,setComment] =
+    useState("");
+
+
+
+  // ===============================
+  // Average Rating
+  // ===============================
+
+  const calculateAverageRating = (reviews)=>{
+
+    if(!reviews || reviews.length===0)
       return 0;
-    }
+
 
     const total = reviews.reduce(
-      (sum, review) => sum + review.rating,
+      (sum,item)=>sum + item.rating,
       0
     );
 
-    return (total / reviews.length).toFixed(1);
+
+    return (total/reviews.length).toFixed(1);
 
   };
 
 
-  const avgRating = calculateAverageRating(
-    selectedCourseData?.reviews
-  );
-
-
-
-  // ---------------- Fetch Course ----------------
-
-  const fetchCourseData = () => {
-
-    const course = courseData.find(
-      item => item._id === courseId
+  const avgRating =
+    calculateAverageRating(
+      selectedCourseData?.reviews
     );
 
 
-    if(course){
 
-      dispatch(
-        setSelectedCourseData(course)
+  // ===============================
+  // Fetch Course
+  // ===============================
+
+  const fetchCourseData = async()=>{
+
+    try{
+
+      const course =
+        courseData.find(
+          item=>item._id===courseId
+        );
+
+
+      if(course){
+
+        dispatch(
+          setSelectedCourseData(course)
+        );
+
+        return;
+      }
+
+
+
+      const {data}=await axios.get(
+        `${serverUrl}/api/course/${courseId}`,
+        {
+          withCredentials:true
+        }
+      );
+
+
+
+      if(data.success){
+
+        dispatch(
+          setSelectedCourseData(
+            data.course
+          )
+        );
+
+      }
+
+
+    }
+    catch(error){
+
+      console.log(
+        "Course fetch error:",
+        error
+      );
+
+
+      toast.error(
+        "Course not found"
       );
 
     }
@@ -89,34 +150,37 @@ function ViewCourse() {
 
 
 
+  // ===============================
+  // Enrollment Check
+  // ===============================
 
-  // ---------------- Check Enrollment ----------------
-
-  const checkEnrollment = () => {
-
-
-    const verify = userData?.enrolledCourses?.some(
-      (course)=>{
-
-        const enrolledId =
-          typeof course === "string"
-          ? course
-          : course._id;
+  const checkEnrollment = ()=>{
 
 
-        return enrolledId?.toString() === courseId?.toString();
+    const verify =
+      userData?.enrolledCourses?.some(
+        (course)=>{
 
-      }
+
+          const id =
+            typeof course==="string"
+            ? course
+            : course._id;
+
+
+
+          return (
+            id?.toString() ===
+            courseId?.toString()
+          );
+
+        }
+      );
+
+
+    setIsEnrolled(
+      verify || false
     );
-
-
-    console.log(
-      "Enrollment verified:",
-      verify
-    );
-
-
-    setIsEnrolled(!!verify);
 
   };
 
@@ -127,19 +191,27 @@ function ViewCourse() {
 
     fetchCourseData();
 
-    checkEnrollment();
-
   },[
     courseId,
-    courseData,
-    userData
+    courseData
   ]);
 
 
 
 
+  useEffect(()=>{
 
-  // ---------------- Fetch Creator ----------------
+    checkEnrollment();
+
+  },[
+    userData
+  ]);
+
+
+
+  // ===============================
+  // Creator Data
+  // ===============================
 
   useEffect(()=>{
 
@@ -148,25 +220,37 @@ function ViewCourse() {
 
       try{
 
-        if(selectedCourseData?.creator){
+        if(!selectedCourseData?.creator)
+          return;
 
 
-          const result = await axios.post(
 
-            serverUrl + "/api/course/getcreator",
+        const creatorId =
+          typeof selectedCourseData.creator==="object"
+          ?
+          selectedCourseData.creator._id
+          :
+          selectedCourseData.creator;
 
-            {
-              userId:selectedCourseData.creator
-            },
 
-            {
-              withCredentials:true
-            }
 
+        const {data}=await axios.get(
+
+          `${serverUrl}/api/course/creator/${creatorId}`,
+
+          {
+            withCredentials:true
+          }
+
+        );
+
+
+
+        if(data.success){
+
+          setCreatorData(
+            data.creator
           );
-
-
-          setCreatorData(result.data);
 
         }
 
@@ -174,14 +258,12 @@ function ViewCourse() {
       }
       catch(error){
 
-        console.log(
-          "Creator Error:",
-          error
-        );
+        console.log(error);
 
       }
 
     };
+
 
 
     getCreator();
@@ -193,31 +275,46 @@ function ViewCourse() {
 
 
 
-
-
-
-  // ---------------- Other Courses ----------------
-
+  // ===============================
+  // Other Courses
+  // ===============================
 
   useEffect(()=>{
 
 
-    if(
-      creatorData?._id &&
-      courseData.length>0
-    ){
-
-      const courses =
-        courseData.filter(
-          course =>
-            course.creator === creatorData._id &&
-            course._id !== courseId
-        );
+    if(!creatorData)
+      return;
 
 
-      setSelectedCreatorCourse(courses);
 
-    }
+    const courses =
+      courseData.filter(
+        course=>{
+
+
+          const creatorId =
+            typeof course.creator==="object"
+            ?
+            course.creator._id
+            :
+            course.creator;
+
+
+
+          return (
+            creatorId===creatorData._id &&
+            course._id!==courseId
+          );
+
+
+        }
+      );
+
+
+
+    setSelectedCreatorCourse(
+      courses
+    );
 
 
   },[
@@ -227,20 +324,17 @@ function ViewCourse() {
 
 
 
-
-
-  // ---------------- Add Review ----------------
-
+  // ===============================
+  // Review
+  // ===============================
 
   const handleReview = async()=>{
 
-
     try{
 
+      const {data}=await axios.post(
 
-      const result = await axios.post(
-
-        serverUrl + "/api/review/givereview",
+        `${serverUrl}/api/review/givereview`,
 
         {
           rating,
@@ -256,7 +350,7 @@ function ViewCourse() {
 
 
       toast.success(
-        "Review Added"
+        data.message
       );
 
 
@@ -264,14 +358,11 @@ function ViewCourse() {
 
       setComment("");
 
-
-      console.log(result.data);
+      fetchCourseData();
 
 
     }
     catch(error){
-
-      console.log(error);
 
       toast.error(
         error.response?.data?.message ||
@@ -280,38 +371,22 @@ function ViewCourse() {
 
     }
 
-
   };
 
 
 
-
-
-  // ---------------- Razorpay Enrollment ----------------
-
+  // ===============================
+  // Enrollment
+  // ===============================
 
   const handleEnroll = async()=>{
-
 
     try{
 
 
-      if(!window.Razorpay){
+      const {data:order}=await axios.post(
 
-        toast.error(
-          "Razorpay SDK not loaded"
-        );
-
-        return;
-
-      }
-
-
-
-
-      const orderData = await axios.post(
-
-        serverUrl + "/api/payment/create-order",
+        `${serverUrl}/api/payment/create-order`,
 
         {
           courseId
@@ -325,12 +400,7 @@ function ViewCourse() {
 
 
 
-      const order = orderData.data;
-
-
-
-      const options = {
-
+      const options={
 
         key:
         import.meta.env.VITE_RAZORPAY_KEY_ID,
@@ -356,18 +426,15 @@ function ViewCourse() {
         order.id,
 
 
-
-        handler:
-        async function(response){
+        handler:async(response)=>{
 
 
           try{
 
 
-            const verify =
-            await axios.post(
+            const {data}=await axios.post(
 
-              serverUrl + "/api/payment/verify-payment",
+              `${serverUrl}/api/payment/verify-payment`,
 
               {
 
@@ -397,30 +464,22 @@ function ViewCourse() {
             );
 
 
-            setIsEnrolled(true);
-
-
             toast.success(
-              verify.data.message
+              data.message
             );
+
+
+            setIsEnrolled(true);
 
 
           }
           catch(error){
 
-
-            console.log(
-              error
-            );
-
-
             toast.error(
               "Payment verification failed"
             );
 
-
           }
-
 
         },
 
@@ -435,272 +494,152 @@ function ViewCourse() {
 
 
         theme:{
-
           color:"#000000"
-
         }
-
 
       };
 
 
 
-
       const razorpay =
-      new window.Razorpay(options);
-
+        new window.Razorpay(options);
 
 
       razorpay.open();
 
 
-
     }
     catch(error){
 
-
-      console.log(
-        "Enroll Error:",
-        error
-      );
-
-
       toast.error(
-
-        error.response?.data?.message ||
-        "Something went wrong while enrolling"
-
+        "Enrollment failed"
       );
-
 
     }
 
-
   };
+    if (!selectedCourseData) {
     return (
+      <div className="min-h-screen flex items-center justify-center">
+        <h1 className="text-2xl font-semibold">
+          Loading Course...
+        </h1>
+      </div>
+    );
+  }
+
+
+  return (
     <div className="min-h-screen bg-gray-50 p-6">
 
-      <div className="max-w-6xl mx-auto bg-white shadow-md rounded-xl p-6 space-y-6">
+      <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-md p-6">
 
-
-        {/* TOP SECTION */}
+        {/* Top Section */}
 
         <div className="flex flex-col md:flex-row gap-6">
 
-
-          {/* Thumbnail */}
-
           <div className="w-full md:w-1/2">
 
-
             <FaArrowLeftLong
-              className="text-black w-[22px] h-[22px] cursor-pointer mb-3"
+              className="cursor-pointer mb-4 text-xl"
               onClick={()=>navigate("/")}
             />
 
 
             <img
               src={
-                selectedCourseData?.thumbnail ||
-                img
+                selectedCourseData.thumbnail || img
               }
-              alt="Course Thumbnail"
-              className="rounded-xl w-full object-cover"
+              alt="thumbnail"
+              className="w-full rounded-xl object-cover"
             />
-
 
           </div>
 
 
+          <div className="flex-1">
 
-
-          {/* Course Details */}
-
-
-          <div className="flex-1 space-y-3 mt-5">
-
-
-            <h1 className="text-2xl font-bold">
-              {selectedCourseData?.title}
+            <h1 className="text-3xl font-bold">
+              {selectedCourseData.title}
             </h1>
 
 
-            <p className="text-gray-600">
-              {selectedCourseData?.subTitle}
+            <p className="text-gray-600 mt-3">
+              {selectedCourseData.subTitle}
             </p>
 
 
+            <div className="mt-4 text-yellow-500 flex items-center gap-2">
 
-            <div className="flex flex-col gap-2">
+              <FaStar/>
 
+              {avgRating}
 
-              <div className="text-yellow-500 font-medium">
-
-                ⭐ {avgRating}
-
-                <span className="text-gray-500 ml-2">
-                  ({selectedCourseData?.reviews?.length || 0} reviews)
-                </span>
-
-              </div>
-
-
-
-              <div>
-
-                <span className="text-lg font-semibold">
-
-                  ₹{selectedCourseData?.price}
-
-                </span>
-
-
-                <span className="line-through text-gray-400 ml-2">
-
-                  ₹599
-
-                </span>
-
-              </div>
-
+              <span className="text-gray-500">
+                ({selectedCourseData.reviews?.length || 0} Reviews)
+              </span>
 
             </div>
 
 
-
-
-            <ul className="text-sm text-gray-700 space-y-1">
-
-              <li>
-                ✅ 10+ hours of video content
-              </li>
-
-              <li>
-                ✅ Lifetime access
-              </li>
-
-
-            </ul>
-
-
-
-
-
-            {!isEnrolled ? (
-
-              <button
-
-                className="bg-black text-white px-6 py-2 rounded hover:bg-gray-700"
-
-                onClick={handleEnroll}
-
-              >
-
-                Enroll Now
-
-              </button>
-
-
-            ):(
-
-
-              <button
-
-                className="bg-green-200 text-green-700 px-6 py-2 rounded"
-
-                onClick={()=>
-                  navigate(`/viewlecture/${courseId}`)
-                }
-
-              >
-
-                Watch Now
-
-              </button>
-
-
-            )}
-
-
-
-          </div>
-
-
-        </div>
-
-
-
-
-
-        {/* LEARNING */}
-
-        <div>
-
-          <h2 className="text-xl font-semibold mb-2">
-            What You'll Learn
-          </h2>
-
-
-          <ul className="list-disc pl-6 text-gray-700">
-
-            <li>
-              Learn {selectedCourseData?.category} from beginning
-            </li>
-
-          </ul>
-
-
-        </div>
-
-
-
-
-
-
-        {/* CURRICULUM */}
-
-
-        <div className="flex flex-col md:flex-row gap-6">
-
-
-          <div className="bg-white w-full md:w-2/5 p-6 rounded-xl shadow border">
-
-
-            <h2 className="text-xl font-bold">
-
-              Course Curriculum
-
+            <h2 className="text-2xl font-bold mt-4">
+              ₹{selectedCourseData.price}
             </h2>
-
-
-            <p className="text-sm text-gray-500 mb-4">
-
-              {selectedCourseData?.lectures?.length || 0}
-              {" "}
-              Lectures
-
-            </p>
-
 
 
 
             {
-              selectedCourseData?.lectures?.map(
-                (lecture,index)=>(
+              !isEnrolled ?
 
+              <button
+                onClick={handleEnroll}
+                className="mt-5 bg-black text-white px-6 py-3 rounded-lg"
+              >
+                Enroll Now
+              </button>
+
+              :
+
+              <button
+                onClick={()=>navigate(`/viewlecture/${courseId}`)}
+                className="mt-5 bg-green-600 text-white px-6 py-3 rounded-lg"
+              >
+                Watch Course
+              </button>
+            }
+
+
+          </div>
+
+        </div>
+
+
+
+
+        {/* Curriculum */}
+
+        <div className="mt-10">
+
+          <h2 className="text-2xl font-bold mb-4">
+            Course Curriculum
+          </h2>
+
+
+          {
+            selectedCourseData.lectures?.map(
+              (lecture,index)=>(
 
                 <button
 
-                  key={index}
-
-                  disabled={!lecture.isPreviewFree}
+                  key={lecture._id}
 
                   onClick={()=>
                     lecture.isPreviewFree &&
                     setSelectedLecture(lecture)
                   }
 
-                  className="flex items-center gap-3 w-full p-3 border rounded-lg mb-2"
+
+                  className="w-full flex items-center gap-3 border p-3 rounded-lg mb-3"
 
                 >
 
@@ -713,56 +652,41 @@ function ViewCourse() {
                   }
 
 
-                  {lecture.lectureTitle}
+                  {index+1}. {lecture.lectureTitle}
 
 
                 </button>
 
-
-                )
               )
-            }
+            )
+          }
+
+        </div>
 
 
 
-          </div>
 
 
+        {/* Video Preview */}
 
+        <div className="mt-6 bg-black rounded-xl min-h-[300px] flex items-center justify-center">
 
+          {
+            selectedLecture ?
 
-          <div className="bg-black w-full md:w-3/5 rounded-xl flex items-center justify-center">
+            <video
+              src={selectedLecture.videoUrl}
+              controls
+              className="w-full rounded-xl"
+            />
 
+            :
 
-            {
+            <p className="text-white">
+              Select Preview Lecture
+            </p>
 
-              selectedLecture?.videoUrl ?
-
-              <video
-
-                src={selectedLecture.videoUrl}
-
-                controls
-
-                className="w-full h-full rounded-xl"
-
-              />
-
-              :
-
-              <span className="text-white">
-
-                Select preview lecture
-
-              </span>
-
-            }
-
-
-
-          </div>
-
-
+          }
 
         </div>
 
@@ -771,90 +695,70 @@ function ViewCourse() {
 
 
 
+        {/* Review */}
 
+        <div className="mt-10 border-t pt-6">
 
-        {/* REVIEW */}
-
-
-        <div className="border-t pt-6">
-
-
-          <h2 className="text-xl font-semibold mb-3">
-
-            Write a Review
-
+          <h2 className="text-xl font-bold">
+            Give Review
           </h2>
 
 
-
-          <div className="flex gap-2 mb-3">
-
+          <div className="flex gap-2 mt-3">
 
             {
               [1,2,3,4,5].map(
                 star=>(
 
-                <FaStar
+                  <FaStar
 
-                  key={star}
+                    key={star}
 
-                  onClick={()=>
-                    setRating(star)
-                  }
+                    onClick={()=>setRating(star)}
 
-                  className={
-                    star <= rating
-                    ?
-                    "fill-yellow-500 cursor-pointer"
-                    :
-                    "fill-gray-300 cursor-pointer"
-                  }
+                    className={
+                      star<=rating
+                      ?
+                      "text-yellow-500 cursor-pointer"
+                      :
+                      "text-gray-300 cursor-pointer"
+                    }
 
-                />
-
+                  />
 
                 )
               )
             }
 
-
           </div>
-
-
 
 
           <textarea
 
             value={comment}
 
-            onChange={
-              e=>setComment(e.target.value)
-            }
+            onChange={(e)=>setComment(e.target.value)}
 
-            rows="3"
+            className="border w-full mt-4 p-3 rounded"
 
-            className="w-full border p-2 rounded"
-
-            placeholder="Write your review"
+            placeholder="Write review"
 
           />
-
 
 
           <button
 
             onClick={handleReview}
 
-            className="bg-black text-white px-4 py-2 mt-3 rounded"
+            className="bg-black text-white px-5 py-2 rounded mt-3"
 
           >
 
-            Submit Review
+            Submit
 
           </button>
 
 
-
         </div>
 
 
@@ -862,47 +766,25 @@ function ViewCourse() {
 
 
 
+        {/* Creator */}
 
-        {/* CREATOR */}
-
-
-        <div className="border-t pt-5 flex gap-4 items-center">
-
+        <div className="mt-10 border-t pt-6 flex gap-4">
 
           <img
-
-            src={
-              creatorData?.photoUrl ||
-              img
-            }
-
-            className="w-16 h-16 rounded-full object-cover"
-
+            src={creatorData?.photoUrl || img}
+            className="w-16 h-16 rounded-full"
           />
-
 
 
           <div>
 
-
-            <h3 className="font-semibold text-lg">
-
+            <h2 className="font-bold">
               {creatorData?.name}
+            </h2>
 
-            </h3>
 
-
-            <p className="text-gray-600">
-
+            <p>
               {creatorData?.description}
-
-            </p>
-
-
-            <p className="text-gray-600 text-sm">
-
-              {creatorData?.email}
-
             </p>
 
 
@@ -917,64 +799,47 @@ function ViewCourse() {
 
 
 
+        {/* Other Courses */}
 
-        {/* OTHER COURSES */}
+        <div className="mt-10">
 
-
-        <div>
-
-
-          <h2 className="text-xl font-semibold mb-4">
-
-            Other Published Courses by the Educator
-
+          <h2 className="text-xl font-bold mb-4">
+            Other Courses
           </h2>
-
 
 
           <div className="flex flex-wrap gap-6">
 
-
             {
-              selectedCreatorCourse.map(
-                (item,index)=>(
+              selectedCreatorCourse.map(course=>(
 
                 <Card
 
-                  key={index}
+                  key={course._id}
 
-                  thumbnail={
-                    item.thumbnail || img
-                  }
+                  id={course._id}
 
-                  title={item.title}
+                  thumbnail={course.thumbnail}
 
-                  id={item._id}
+                  title={course.title}
 
-                  price={item.price}
+                  price={course.price}
 
-                  category={item.category}
+                  category={course.category}
 
-                  reviews={item.reviews}
+                  reviews={course.reviews}
 
                 />
 
-
-                )
-              )
+              ))
             }
 
-
           </div>
-
-
 
         </div>
 
 
-
       </div>
-
 
     </div>
   );
