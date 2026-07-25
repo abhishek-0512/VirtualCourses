@@ -14,6 +14,8 @@ export const createCourse = async (req, res) => {
   try {
     let { title, category } = req.body;
 
+    const userId = req.userId || req.user?.id;
+
     if (!title || !category) {
       return res.status(400).json({
         success: false,
@@ -27,14 +29,16 @@ export const createCourse = async (req, res) => {
     const courseData = {
       title,
       category,
-      creator: req.userId,
+      creator: userId,
     };
 
     if (req.file) {
       const thumbnail = await uploadOnCloudinary(req.file.path);
 
-      courseData.thumbnail = thumbnail.secure_url;
-      courseData.thumbnailPublicId = thumbnail.public_id;
+      if (thumbnail && thumbnail.url) {
+        courseData.thumbnail = thumbnail.url;
+        courseData.thumbnailPublicId = thumbnail.public_id;
+      }
     }
 
     const course = await Course.create(courseData);
@@ -82,8 +86,10 @@ export const getPublishedCourses = async (req, res) => {
 
 export const getCreatorCourses = async (req, res) => {
   try {
+    const userId = req.userId || req.user?.id;
+
     const courses = await Course.find({
-      creator: req.userId,
+      creator: userId,
     }).sort({ createdAt: -1 });
 
     return res.status(200).json({
@@ -145,6 +151,7 @@ export const getCourseById = async (req, res) => {
 export const editCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
+    const userId = req.userId || req.user?.id;
 
     const course = await Course.findById(courseId);
 
@@ -155,7 +162,7 @@ export const editCourse = async (req, res) => {
       });
     }
 
-    if (course.creator.toString() !== req.userId) {
+    if (course.creator.toString() !== userId) {
       return res.status(403).json({
         success: false,
         message: "Unauthorized",
@@ -187,8 +194,10 @@ export const editCourse = async (req, res) => {
 
       const thumbnail = await uploadOnCloudinary(req.file.path);
 
-      course.thumbnail = thumbnail.secure_url;
-      course.thumbnailPublicId = thumbnail.public_id;
+      if (thumbnail && thumbnail.url) {
+        course.thumbnail = thumbnail.url;
+        course.thumbnailPublicId = thumbnail.public_id;
+      }
     }
 
     await course.save();
@@ -214,6 +223,7 @@ export const editCourse = async (req, res) => {
 export const removeCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
+    const userId = req.userId || req.user?.id;
 
     const course = await Course.findById(courseId);
 
@@ -224,7 +234,7 @@ export const removeCourse = async (req, res) => {
       });
     }
 
-    if (course.creator.toString() !== req.userId) {
+    if (course.creator.toString() !== userId) {
       return res.status(403).json({
         success: false,
         message: "Unauthorized",

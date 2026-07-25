@@ -5,41 +5,42 @@ const orderSchema = new mongoose.Schema(
     course: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Course",
-      required: true
+      required: true,
     },
     student: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true
+      required: true,
     },
     razorpay_order_id: {
       type: String,
-      required: true
+      required: true,
     },
     razorpay_payment_id: {
-      type: String
+      type: String,
     },
     razorpay_signature: {
-      type: String
+      type: String,
     },
     amount: {
       type: Number,
-      required: true
+      required: true,
     },
     currency: {
       type: String,
-      default: "INR"
+      default: "INR",
     },
     isPaid: {
       type: Boolean,
-      default: false
+      default: false,
     },
     paidAt: {
-      type: Date
-    }
+      type: Date,
+    },
   },
   { timestamps: true }
 );
 
 const Order = mongoose.model("Order", orderSchema);
+
 export default Order;

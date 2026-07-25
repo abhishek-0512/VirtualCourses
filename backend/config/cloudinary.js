@@ -5,31 +5,44 @@ import fs from "fs";
 // Cloudinary Configuration
 // ======================================================
 
-if (
-  !process.env.CLOUDINARY_CLOUD_NAME ||
-  !process.env.CLOUDINARY_API_KEY ||
-  !process.env.CLOUDINARY_API_SECRET
-) {
-  console.log("Cloudinary environment variables are missing.");
+const {
+  CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET,
+} = process.env;
+
+if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
+  console.warn("⚠️ Warning: Cloudinary environment variables are missing or incomplete.");
 }
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: CLOUDINARY_CLOUD_NAME,
+  api_key: CLOUDINARY_API_KEY,
+  api_secret: CLOUDINARY_API_SECRET,
 });
+
+/**
+ * Safely removes a temporary file from local storage
+ * @param {string} filePath 
+ */
+const removeLocalFile = (filePath) => {
+  try {
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  } catch (err) {
+    console.error(`Failed to remove temp file ${filePath}:`, err.message);
+  }
+};
 
 // ======================================================
 // Upload File to Cloudinary
 // ======================================================
 
-export const uploadOnCloudinary = async (
-  filePath,
-  folder = "VirtualCourses"
-) => {
+export const uploadOnCloudinary = async (filePath, folder = "VirtualCourses") => {
   try {
     if (!filePath) {
-      throw new Error("File path not found.");
+      throw new Error("Local file path is required for upload.");
     }
 
     const result = await cloudinary.uploader.upload(filePath, {
@@ -37,10 +50,8 @@ export const uploadOnCloudinary = async (
       resource_type: "auto",
     });
 
-    // Remove temporary uploaded file
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
+    // Remove local temp file after successful upload
+    removeLocalFile(filePath);
 
     return {
       success: true,
@@ -48,14 +59,13 @@ export const uploadOnCloudinary = async (
       public_id: result.public_id,
       resource_type: result.resource_type,
       duration: result.duration || 0,
-      bytes: result.bytes,
+      bytes: result.bytes || 0,
     };
   } catch (error) {
-    console.log("Cloudinary Upload Error:", error.message);
+    console.error("Cloudinary Upload Error:", error.message);
 
-    if (filePath && fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
+    // Ensure temp file is removed even if upload fails
+    removeLocalFile(filePath);
 
     return {
       success: false,
@@ -64,6 +74,7 @@ export const uploadOnCloudinary = async (
       resource_type: "",
       duration: 0,
       bytes: 0,
+      error: error.message,
     };
   }
 };
@@ -72,20 +83,17 @@ export const uploadOnCloudinary = async (
 // Delete File From Cloudinary
 // ======================================================
 
-export const deleteFromCloudinary = async (
-  publicId,
-  resourceType = "image"
-) => {
+export const deleteFromCloudinary = async (publicId, resourceType = "image") => {
   try {
-    if (!publicId) return;
+    if (!publicId) return false;
 
-    await cloudinary.uploader.destroy(publicId, {
+    const result = await cloudinary.uploader.destroy(publicId, {
       resource_type: resourceType,
     });
 
-    return true;
+    return result.result === "ok";
   } catch (error) {
-    console.log("Cloudinary Delete Error:", error.message);
+    console.error("Cloudinary Delete Error:", error.message);
     return false;
   }
 };

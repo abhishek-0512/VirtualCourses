@@ -1,5 +1,5 @@
 import express from "express"
-import { createOrder, verifyPayment } from "./controller/orderController.js";
+import { createOrder, verifyPayment } from "../controller/orderController.js";
 
 let paymentRouter = express.Router()
 

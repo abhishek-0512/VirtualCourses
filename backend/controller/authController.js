@@ -1,510 +1,220 @@
-import { genToken } from "../config/token.js";
-import validator from "validator";
-import bcrypt from "bcryptjs";
 import User from "../model/userModel.js";
-
-
-/* ==========================================
-              COOKIE OPTIONS
-========================================== */
-
-const cookieOptions = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    path: "/"
-};
-
-
-
-/* ==========================================
-                    SIGN UP
-========================================== */
-
-export const signUp = async (req,res)=>{
-
-    try {
-
-        let {name,email,password,role} = req.body;
-
-
-        if(!name || !email || !password || !role){
-
-            return res.status(400).json({
-                success:false,
-                message:"All fields are required"
-            });
-
-        }
-
-
-        name = name.trim();
-        email = email.trim().toLowerCase();
-
-
-
-        if(!validator.isEmail(email)){
-
-            return res.status(400).json({
-                success:false,
-                message:"Invalid email address"
-            });
-
-        }
-
-
-
-        if(!["student","educator"].includes(role)){
-
-            return res.status(400).json({
-                success:false,
-                message:"Invalid role"
-            });
-
-        }
-
-
-
-        if(password.length < 8){
-
-            return res.status(400).json({
-                success:false,
-                message:"Password must contain minimum 8 characters"
-            });
-
-        }
-
-
-
-        const existingUser = await User.findOne({email});
-
-
-        if(existingUser){
-
-            return res.status(409).json({
-                success:false,
-                message:"Email already exists"
-            });
-
-        }
-
-
-
-        const hashPassword = await bcrypt.hash(password,10);
-
-
-
-        const user = await User.create({
-
-            name,
-            email,
-            password:hashPassword,
-            role
-
-        });
-
-
-
-        const token = genToken(user._id);
-
-
-        res.cookie(
-            "token",
-            token,
-            cookieOptions
-        );
-
-
-
-        return res.status(201).json({
-
-            success:true,
-            message:"Account created successfully",
-
-            user:{
-                id:user._id,
-                name:user.name,
-                email:user.email,
-                role:user.role,
-                photoUrl:user.photoUrl
-            }
-
-        });
-
-
-
-    } catch(error){
-
-        console.log("Signup Error:",error);
-
-
-        return res.status(500).json({
-
-            success:false,
-            message:"Internal server error"
-
-        });
-
+import bcrypt from "bcryptjs";
+import { genToken, setTokenCookie } from "../config/token.js";
+
+// =======================
+// GOOGLE AUTH / SIGNUP CONTROLLER
+// =======================
+export const googleAuth = async (req, res) => {
+  try {
+    const { name, email, googleId, photoUrl, role } = req.body;
+
+    if (!email || !googleId) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and Google ID are required.",
+      });
     }
 
-};
+    // Check if user already exists
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
 
-
-
-
-
-/* ==========================================
-                    LOGIN
-========================================== */
-
-export const login = async(req,res)=>{
-
-    try {
-
-
-        let {email,password} = req.body;
-
-
-
-        if(!email || !password){
-
-            return res.status(400).json({
-
-                success:false,
-                message:"Email and password required"
-
-            });
-
-        }
-
-
-
-        email = email.trim().toLowerCase();
-
-
-
-        const user = await User.findOne({email})
-        .select("+password");
-
-
-
-        if(!user){
-
-            return res.status(404).json({
-
-                success:false,
-                message:"User not found"
-
-            });
-
-        }
-
-
-
-        const isMatch = await bcrypt.compare(
-            password,
-            user.password
-        );
-
-
-
-        if(!isMatch){
-
-            return res.status(401).json({
-
-                success:false,
-                message:"Incorrect password"
-
-            });
-
-        }
-
-
-
-        const token = genToken(user._id);
-
-
-
-        res.cookie(
-            "token",
-            token,
-            cookieOptions
-        );
-
-
-
-        return res.status(200).json({
-
-            success:true,
-            message:"Login successful",
-
-            user:{
-                id:user._id,
-                name:user.name,
-                email:user.email,
-                role:user.role,
-                photoUrl:user.photoUrl
-            }
-
-        });
-
-
-
-    } catch(error){
-
-
-        console.log("Login Error:",error);
-
-
-        return res.status(500).json({
-
-            success:false,
-            message:"Internal server error"
-
-        });
-
+    if (user) {
+      // Link Google ID if user registered with password previously
+      if (!user.googleId) {
+        user.googleId = googleId;
+        if (photoUrl && !user.photoUrl) user.photoUrl = photoUrl;
+        await user.save();
+      }
+    } else {
+      // Create new user via Google
+      user = await User.create({
+        name: name || "Google User",
+        email,
+        googleId,
+        photoUrl: photoUrl || "",
+        role: role || "student",
+      });
     }
 
+    // Generate JWT token & set cookie
+    const token = genToken(user._id);
+    setTokenCookie(res, token);
+
+    return res.status(200).json({
+      success: true,
+      message: "Google authentication successful.",
+      token,
+      user,
+    });
+  } catch (error) {
+    console.error("Google Auth Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error during Google authentication.",
+      error: error.message,
+    });
+  }
 };
 
+// Alias export in case authRoute.js imports googleSignup
+export const googleSignup = googleAuth;
 
+// =======================
+// SIGN UP CONTROLLER
+// =======================
+export const signUp = async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
 
-
-
-
-/* ==========================================
-                    LOGOUT
-========================================== */
-
-export const logOut = async(req,res)=>{
-
-    try {
-
-
-        res.clearCookie(
-            "token",
-            {
-                httpOnly:true,
-                secure:process.env.NODE_ENV === "production",
-                sameSite:process.env.NODE_ENV === "production" 
-                ? "None" 
-                : "Lax",
-                path:"/"
-            }
-        );
-
-
-
-        return res.status(200).json({
-
-            success:true,
-            message:"Logged out successfully"
-
-        });
-
-
-
-    } catch(error){
-
-
-        console.log("Logout Error:",error);
-
-
-        return res.status(500).json({
-
-            success:false,
-            message:"Internal server error"
-
-        });
-
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, email, and password are required.",
+      });
     }
 
-};
-
-
-
-
-
-/* ==========================================
-              GOOGLE LOGIN / SIGNUP
-========================================== */
-
-export const googleSignup = async(req,res)=>{
-
-    try {
-
-
-        let {name,email,role} = req.body;
-
-
-
-        if(!name || !email){
-
-            return res.status(400).json({
-
-                success:false,
-                message:"Google information missing"
-
-            });
-
-        }
-
-
-
-        name = name.trim();
-        email = email.trim().toLowerCase();
-
-
-
-        if(!validator.isEmail(email)){
-
-            return res.status(400).json({
-
-                success:false,
-                message:"Invalid email"
-
-            });
-
-        }
-
-
-
-        if(!role){
-            role="student";
-        }
-
-
-
-        if(!["student","educator"].includes(role)){
-
-
-            return res.status(400).json({
-
-                success:false,
-                message:"Invalid role"
-
-            });
-
-        }
-
-
-
-
-        let user = await User.findOne({email});
-
-
-
-        if(!user){
-
-
-            user = await User.create({
-
-                name,
-                email,
-                role,
-                googleId:email,
-                photoUrl:""
-
-            });
-
-
-        }
-        else{
-
-
-            user.name = name;
-
-
-            if(!user.googleId){
-
-                user.googleId = email;
-
-            }
-
-
-            await user.save();
-
-        }
-
-
-
-        const token = genToken(user._id);
-
-
-
-        res.cookie(
-            "token",
-            token,
-            cookieOptions
-        );
-
-
-
-        return res.status(200).json({
-
-            success:true,
-            message:"Google login successful",
-
-            user:{
-                id:user._id,
-                name:user.name,
-                email:user.email,
-                role:user.role,
-                photoUrl:user.photoUrl
-            }
-
-        });
-
-
-
-    } catch(error){
-
-
-        console.log("Google Login Error:",error);
-
-
-        return res.status(500).json({
-
-            success:false,
-            message:"Internal server error"
-
-        });
-
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "An account with this email already exists.",
+      });
     }
 
-};
-/* ==========================================
-              GET CURRENT USER
-========================================== */
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
+    const newUser = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role: role || "student",
+    });
+
+    const token = genToken(newUser._id);
+    setTokenCookie(res, token);
+
+    return res.status(201).json({
+      success: true,
+      message: "Account created successfully.",
+      token,
+      user: newUser,
+    });
+  } catch (error) {
+    console.error("SignUp Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error during registration.",
+      error: error.message,
+    });
+  }
+};
+
+// =======================
+// LOGIN CONTROLLER
+// =======================
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required.",
+      });
+    }
+
+    const user = await User.findOne({ email }).select("+password");
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email or password.",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email or password.",
+      });
+    }
+
+    const token = genToken(user._id);
+    setTokenCookie(res, token);
+
+    return res.status(200).json({
+      success: true,
+      message: "Logged in successfully.",
+      token,
+      user,
+    });
+  } catch (error) {
+    console.error("Login Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error during login.",
+      error: error.message,
+    });
+  }
+};
+
+// =======================
+// GET CURRENT USER CONTROLLER
+// =======================
 export const getCurrentUser = async (req, res) => {
-    try {
+  try {
+    const userId = req.user?.id || req.userId;
 
-        const user = await User.findById(req.userId)
-            .select("-password")
-            .populate("enrolledCourses");
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found"
-            });
-        }
-
-        return res.status(200).json({
-            success: true,
-            user
-        });
-
-    } catch (error) {
-
-        console.log("Get Current User Error:", error);
-
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized access.",
+      });
     }
+
+    const user = await User.findById(userId).populate("enrolledCourses");
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.error("GetCurrentUser Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error fetching user profile.",
+      error: error.message,
+    });
+  }
 };
+
+// =======================
+// LOGOUT CONTROLLER
+// =======================
+export const logOut = async (req, res) => {
+  try {
+    res.clearCookie("token");
+    return res.status(200).json({
+      success: true,
+      message: "Logged out successfully.",
+    });
+  } catch (error) {
+    console.error("Logout Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error during logout.",
+      error: error.message,
+    });
+  }
+};
+
+// Alias export in case authRoute.js imports 'logout' instead of 'logOut'
+export const logout = logOut;

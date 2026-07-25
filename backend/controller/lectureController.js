@@ -10,6 +10,7 @@ export const createLecture = async (req, res) => {
   try {
     const { courseId } = req.params;
     const { lectureTitle } = req.body;
+    const userId = req.userId || req.user?.id;
 
     if (!lectureTitle || lectureTitle.trim() === "") {
       return res.status(400).json({
@@ -28,7 +29,7 @@ export const createLecture = async (req, res) => {
     }
 
     // Only course creator can create lectures
-    if (course.creator.toString() !== req.userId) {
+    if (course.creator.toString() !== userId) {
       return res.status(403).json({
         success: false,
         message: "Not authorized.",
@@ -38,7 +39,7 @@ export const createLecture = async (req, res) => {
     const lecture = await Lecture.create({
       lectureTitle: lectureTitle.trim(),
       course: course._id,
-      creator: req.userId,
+      creator: userId,
       order: course.lectures.length + 1,
     });
 
@@ -100,6 +101,7 @@ export const getCourseLectures = async (req, res) => {
     });
   }
 };
+
 /* ===========================================================
                     GET SINGLE LECTURE
 =========================================================== */
@@ -133,16 +135,14 @@ export const getLectureById = async (req, res) => {
   }
 };
 
-
-
 /* ===========================================================
                     UPDATE LECTURE
 =========================================================== */
 
 export const updateLecture = async (req, res) => {
   try {
-
     const { lectureId } = req.params;
+    const userId = req.userId || req.user?.id;
 
     const lecture = await Lecture.findById(lectureId);
 
@@ -163,7 +163,7 @@ export const updateLecture = async (req, res) => {
     }
 
     // Only educator who owns course
-    if (course.creator.toString() !== req.userId) {
+    if (course.creator.toString() !== userId) {
       return res.status(403).json({
         success: false,
         message: "Not authorized.",
@@ -203,15 +203,12 @@ export const updateLecture = async (req, res) => {
     ========================================== */
 
     if (req.file) {
-
       // Delete previous video
       if (lecture.videoPublicId) {
-
         await deleteFromCloudinary(
           lecture.videoPublicId,
           "video"
         );
-
       }
 
       const upload = await uploadOnCloudinary(
@@ -220,12 +217,10 @@ export const updateLecture = async (req, res) => {
       );
 
       if (!upload.success) {
-
         return res.status(500).json({
           success: false,
           message: "Video upload failed.",
         });
-
       }
 
       lecture.videoUrl = upload.url;
@@ -242,16 +237,15 @@ export const updateLecture = async (req, res) => {
     });
 
   } catch (error) {
-
     console.error("Update Lecture Error:", error);
 
     return res.status(500).json({
       success: false,
       message: error.message,
     });
-
   }
 };
+
 /* ===========================================================
                     DELETE LECTURE
 =========================================================== */
@@ -259,6 +253,7 @@ export const updateLecture = async (req, res) => {
 export const deleteLecture = async (req, res) => {
   try {
     const { lectureId } = req.params;
+    const userId = req.userId || req.user?.id;
 
     const lecture = await Lecture.findById(lectureId);
 
@@ -279,7 +274,7 @@ export const deleteLecture = async (req, res) => {
     }
 
     // Only course creator can delete
-    if (course.creator.toString() !== req.userId) {
+    if (course.creator.toString() !== userId) {
       return res.status(403).json({
         success: false,
         message: "Not authorized.",
@@ -333,13 +328,11 @@ export const deleteLecture = async (req, res) => {
     });
 
   } catch (error) {
-
     console.error("Delete Lecture Error:", error);
 
     return res.status(500).json({
       success: false,
       message: error.message,
     });
-
   }
 };

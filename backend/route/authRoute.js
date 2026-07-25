@@ -1,69 +1,26 @@
 import express from "express";
-import rateLimit from "express-rate-limit";
-
 import {
-    googleSignup,
-    login,
-    logOut,
-    signUp,
-    getCurrentUser
+  signUp,
+  login,
+  googleAuth,
+  getCurrentUser,
+  logOut,
 } from "../controller/authController.js";
-
 import isAuth from "../middleware/isAuth.js";
 
 const authRouter = express.Router();
 
 /* ==========================================
-            RATE LIMITER
-========================================== */
-
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 20,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: {
-        success: false,
-        message: "Too many authentication requests. Try again later."
-    }
-});
-
-/* ==========================================
               AUTH ROUTES
 ========================================== */
 
-authRouter.post(
-    "/signup",
-    authLimiter,
-    signUp
-);
+// Signup & Login
+authRouter.post("/signup", signUp);
+authRouter.post("/login", login);
+authRouter.post("/googlesignup", googleAuth);
 
-authRouter.post(
-    "/login",
-    authLimiter,
-    login
-);
-
-authRouter.post(
-    "/googlesignup",
-    authLimiter,
-    googleSignup
-);
-
-/* ==========================================
-            CURRENT USER
-========================================== */
-
-authRouter.get(
-    "/current",
-    isAuth,
-    getCurrentUser
-);
-
-authRouter.get(
-    "/logout",
-    isAuth,
-    logOut
-);
+// Session & Profile
+authRouter.get("/current", isAuth, getCurrentUser);
+authRouter.get("/logout", logOut);
 
 export default authRouter;
