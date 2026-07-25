@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import {
   ArrowLeft,
   PlayCircle,
@@ -16,37 +18,36 @@ import {
   CheckCircle2,
   XCircle,
   Settings2,
+  Award,
+  Download,
+  X,
 } from "lucide-react";
 import { serverUrl } from "../App";
 import Nav from "../component/Nav";
 
 // ================= AI VOICE & QUIZ DRAWER COMPONENT =================
 export function AiLessonDrawer({ currentLecture, courseTitle }) {
-  const [activeTab, setActiveTab] = useState("chat"); // 'chat' | 'quiz'
+  const [activeTab, setActiveTab] = useState("chat");
   const [question, setQuestion] = useState("");
   const [chatHistory, setChatHistory] = useState([]);
   const [loadingChat, setLoadingChat] = useState(false);
 
-  // Voice States
   const [isListening, setIsListening] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const recognitionRef = useRef(null);
 
-  // Smooth Voice Profiles & Settings
   const [voices, setVoices] = useState([]);
   const [selectedVoice, setSelectedVoice] = useState(null);
-  const [pitch, setPitch] = useState(0.95); // Warmer, natural tone
-  const [rate, setRate] = useState(0.95);   // Natural conversational speed
+  const [pitch, setPitch] = useState(0.95);
+  const [rate, setRate] = useState(0.95);
 
-  // Quiz States
   const [quiz, setQuiz] = useState(null);
   const [loadingQuiz, setLoadingQuiz] = useState(false);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [showResults, setShowResults] = useState(false);
 
-  // Load and Filter Soft, Natural Browser Voices
   useEffect(() => {
     const loadVoices = () => {
       if ("speechSynthesis" in window) {
@@ -54,7 +55,6 @@ export function AiLessonDrawer({ currentLecture, courseTitle }) {
         const englishVoices = availableVoices.filter((v) => v.lang.startsWith("en"));
         setVoices(englishVoices.length > 0 ? englishVoices : availableVoices);
 
-        // Pick pleasant, warm, high-quality voices
         const naturalVoice =
           availableVoices.find((v) => v.name.includes("Natural") && v.lang.startsWith("en")) ||
           availableVoices.find((v) => v.name.includes("Google US English") || v.name.includes("Google UK English Female")) ||
@@ -74,7 +74,6 @@ export function AiLessonDrawer({ currentLecture, courseTitle }) {
     }
   }, []);
 
-  // Initialize Speech Recognition
   useEffect(() => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -104,11 +103,10 @@ export function AiLessonDrawer({ currentLecture, courseTitle }) {
     }
   }, []);
 
-  // Soft & Pleasant Text-To-Speech Output
   const speakText = (text) => {
     if (!("speechSynthesis" in window)) return;
 
-    window.speechSynthesis.cancel(); // Stop active speech queue
+    window.speechSynthesis.cancel();
 
     const cleanText = text
       .replace(/```[\s\S]*?```/g, " Here is a code example. ")
@@ -152,7 +150,6 @@ export function AiLessonDrawer({ currentLecture, courseTitle }) {
     }
   };
 
-  // Submit Question
   const handleAskAi = async (e, customPrompt = null) => {
     if (e) e.preventDefault();
     const textToSubmit = customPrompt || question;
@@ -192,7 +189,6 @@ export function AiLessonDrawer({ currentLecture, courseTitle }) {
     }
   };
 
-  // Generate Quiz
   const handleGenerateQuiz = async () => {
     setLoadingQuiz(true);
     setQuiz(null);
@@ -222,7 +218,6 @@ export function AiLessonDrawer({ currentLecture, courseTitle }) {
 
   return (
     <div className="border border-slate-800 rounded-3xl bg-slate-900/60 backdrop-blur-xl p-6 shadow-2xl">
-      {/* Header and Controls */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4 mb-6">
         <div className="flex items-center gap-3">
           <button
@@ -281,7 +276,6 @@ export function AiLessonDrawer({ currentLecture, courseTitle }) {
         )}
       </div>
 
-      {/* Voice Tuning Drawer Settings */}
       {showVoiceSettings && activeTab === "chat" && (
         <div className="mb-6 p-4 rounded-2xl bg-slate-950 border border-slate-800 text-left space-y-3">
           <div className="flex items-center gap-2 text-xs font-bold text-indigo-300 uppercase tracking-wider">
@@ -290,9 +284,7 @@ export function AiLessonDrawer({ currentLecture, courseTitle }) {
           </div>
 
           <div>
-            <label className="text-[11px] text-slate-400 block mb-1">
-              Select Accent / Voice
-            </label>
+            <label className="text-[11px] text-slate-400 block mb-1">Select Accent / Voice</label>
             <select
               value={selectedVoice || ""}
               onChange={(e) => setSelectedVoice(e.target.value)}
@@ -335,7 +327,6 @@ export function AiLessonDrawer({ currentLecture, courseTitle }) {
         </div>
       )}
 
-      {/* AI Voice Chat Tab */}
       {activeTab === "chat" && (
         <div className="space-y-4">
           <div className="max-h-80 overflow-y-auto space-y-3 pr-2">
@@ -415,7 +406,6 @@ export function AiLessonDrawer({ currentLecture, courseTitle }) {
         </div>
       )}
 
-      {/* AI Quiz Tab */}
       {activeTab === "quiz" && (
         <div className="space-y-6">
           {loadingQuiz ? (
@@ -510,44 +500,149 @@ function ViewLecture() {
 
   const [course, setCourse] = useState(null);
   const [selectedLecture, setSelectedLecture] = useState(null);
+  const [completedLectures, setCompletedLectures] = useState([]);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showCertificateModal, setShowCertificateModal] = useState(false);
+
+  const certRef = useRef(null);
 
   useEffect(() => {
     let isMounted = true;
 
-    const fetchCourseLectures = async () => {
+    const fetchData = async () => {
       try {
-        const { data } = await axios.get(
+        const { data: courseRes } = await axios.get(
           `${serverUrl}/api/course/${courseId}`,
           { withCredentials: true }
         );
 
-        if (data.success && isMounted) {
-          const courseData = data.course || data.getCourse || data;
-          setCourse(courseData);
+        const { data: userRes } = await axios.get(
+          `${serverUrl}/api/auth/current`,
+          { withCredentials: true }
+        );
 
-          if (courseData?.lectures?.length > 0) {
-            const firstLec = courseData.lectures[0];
-            setSelectedLecture(firstLec);
+        if (isMounted) {
+          if (courseRes.success) {
+            const courseData = courseRes.course || courseRes.getCourse || courseRes;
+            setCourse(courseData);
+            if (courseData?.lectures?.length > 0) {
+              setSelectedLecture(courseData.lectures[0]);
+            }
+          }
+
+          if (userRes?.user) {
+            setUser(userRes.user);
+            setCompletedLectures(userRes.user.completedLectures || []);
           }
         }
       } catch (error) {
-        console.error("Error fetching course lectures:", error);
+        console.error("Error loading lecture page data:", error);
       } finally {
         if (isMounted) setLoading(false);
       }
     };
 
-    if (courseId) {
-      fetchCourseLectures();
-    }
+    if (courseId) fetchData();
 
     return () => {
       isMounted = false;
     };
   }, [courseId]);
 
-  // Extract raw video URL
+  // Toggle or Mark Lecture Completed safely with Optimistic Update
+  const handleToggleComplete = async (lectureParam) => {
+    let targetId = "";
+    if (typeof lectureParam === "string") {
+      targetId = lectureParam;
+    } else if (lectureParam?._id) {
+      targetId = lectureParam._id.toString();
+    }
+
+    if (!targetId) {
+      console.error("Cannot toggle completion: No valid lecture ID provided.");
+      return;
+    }
+
+    // Optimistic UI state update so progress bar updates immediately
+    setCompletedLectures((prev) => {
+      const isAlreadyDone = prev.some((id) => id?.toString() === targetId);
+      if (isAlreadyDone) {
+        return prev.filter((id) => id?.toString() !== targetId);
+      } else {
+        return [...prev, targetId];
+      }
+    });
+
+    try {
+      const { data } = await axios.post(
+        `${serverUrl}/api/course/toggle-complete`,
+        { lectureId: targetId },
+        { withCredentials: true }
+      );
+
+      if (data.success && data.completedLectures) {
+        setCompletedLectures(data.completedLectures);
+      }
+    } catch (err) {
+      console.error(
+        "Failed to toggle lecture completion:",
+        err.response?.data?.message || err.message || err
+      );
+    }
+  };
+
+  // Called automatically when video finishes playing
+  const handleVideoEnded = () => {
+    if (!selectedLecture?._id) return;
+
+    const currentIdStr = selectedLecture._id.toString();
+    const isAlreadyCompleted = completedLectures.some(
+      (id) => id?.toString() === currentIdStr
+    );
+
+    if (!isAlreadyCompleted) {
+      handleToggleComplete(selectedLecture._id);
+    }
+
+    // Auto-advance to next lecture
+    if (course?.lectures?.length) {
+      const currentIndex = course.lectures.findIndex(
+        (l) => (l._id || l).toString() === currentIdStr
+      );
+      if (currentIndex !== -1 && currentIndex + 1 < course.lectures.length) {
+        const nextLecture = course.lectures[currentIndex + 1];
+        if (typeof nextLecture === "object") {
+          setSelectedLecture(nextLecture);
+        }
+      }
+    }
+  };
+
+  const downloadCertificate = async () => {
+    if (!certRef.current) return;
+
+    const canvas = await html2canvas(certRef.current, { scale: 2 });
+    const imgData = canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF("landscape", "mm", "a4");
+    const width = pdf.internal.pageSize.getWidth();
+    const height = pdf.internal.pageSize.getHeight();
+
+    pdf.addImage(imgData, "PNG", 0, 0, width, height);
+    pdf.save(`${course?.title || course?.courseTitle || "Course"}_Certificate.pdf`);
+  };
+
+  // Calculation for progress bar
+  const totalLectures = course?.lectures?.length || 0;
+  const completedCount = course?.lectures?.filter((l) => {
+    const lId = typeof l === "object" ? l._id?.toString() : l?.toString();
+    return completedLectures.some((id) => id?.toString() === lId);
+  }).length || 0;
+
+  const progressPercent =
+    totalLectures > 0 ? Math.round((completedCount / totalLectures) * 100) : 0;
+
   const rawVideoUrl =
     selectedLecture?.videoUrl ||
     selectedLecture?.lectureUrl ||
@@ -556,7 +651,6 @@ function ViewLecture() {
     selectedLecture?.video ||
     "";
 
-  // Force Cloudinary to encode audio using browser-compatible AAC codec
   const currentVideoUrl = rawVideoUrl.includes("cloudinary.com") && !rawVideoUrl.includes("ac_aac")
     ? rawVideoUrl.replace("/upload/", "/upload/ac_aac/")
     : rawVideoUrl;
@@ -583,7 +677,7 @@ function ViewLecture() {
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Left Column: Video Player + AI Drawer */}
+          {/* Main Video & Lesson Content */}
           <div className="lg:col-span-8 space-y-6">
             <div className="relative aspect-video rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl">
               {currentVideoUrl ? (
@@ -593,48 +687,87 @@ function ViewLecture() {
                   controls
                   playsInline
                   preload="auto"
+                  onEnded={handleVideoEnded}
                   className="w-full h-full object-contain bg-black"
-                  onError={(e) => {
-                    console.error("Failed to stream video from source:", currentVideoUrl);
-                  }}
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 space-y-2 p-6 text-center">
                   <PlayCircle className="w-12 h-12 stroke-1 text-slate-600" />
                   <p className="text-sm font-semibold text-slate-400">
-                    No video URL found for this lecture.
+                    No video uploaded for this lecture.
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl space-y-2">
-              <h1 className="text-xl font-black text-white">
-                {selectedLecture?.lectureTitle || selectedLecture?.title || "Lecture Stream"}
-              </h1>
-              <p className="text-sm text-slate-400">
-                {selectedLecture?.description || "No description provided for this lecture."}
-              </p>
+            <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h1 className="text-xl font-black text-white">
+                  {selectedLecture?.lectureTitle || selectedLecture?.title || "Lecture Stream"}
+                </h1>
+                <p className="text-sm text-slate-400 mt-1">
+                  {selectedLecture?.description || "No description provided for this lecture."}
+                </p>
+              </div>
+
+              {selectedLecture?._id && (
+                <button
+                  onClick={() => handleToggleComplete(selectedLecture._id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex-shrink-0 ${
+                    completedLectures.some((id) => id?.toString() === selectedLecture._id?.toString())
+                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30"
+                      : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-600/30"
+                  }`}
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  <span>
+                    {completedLectures.some((id) => id?.toString() === selectedLecture._id?.toString())
+                      ? "Completed"
+                      : "Mark as Completed"}
+                  </span>
+                </button>
+              )}
             </div>
 
-            {/* AI Assistant & Quiz Drawer */}
             <AiLessonDrawer
               currentLecture={selectedLecture}
               courseTitle={course?.title || course?.courseTitle}
             />
           </div>
 
-          {/* Right Column: Curriculum Sidebar */}
-          <div className="lg:col-span-4 p-6 rounded-3xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl h-fit space-y-4">
-            <h2 className="text-sm font-black uppercase tracking-wider text-slate-300">
-              Course Content ({course?.lectures?.length || 0})
-            </h2>
+          {/* Curriculum Sidebar + Progress */}
+          <div className="lg:col-span-4 p-6 rounded-3xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl h-fit space-y-6">
+            <div className="space-y-2 border-b border-slate-800 pb-4">
+              <div className="flex justify-between items-center text-xs font-bold">
+                <span className="text-slate-300">Course Progress</span>
+                <span className="text-indigo-400">{progressPercent}%</span>
+              </div>
+              <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800">
+                <div
+                  className="bg-gradient-to-r from-indigo-500 to-emerald-400 h-full transition-all duration-500"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
 
-            <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+              {progressPercent === 100 && (
+                <button
+                  onClick={() => setShowCertificateModal(true)}
+                  className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs shadow-lg cursor-pointer hover:scale-[1.02] transition-transform"
+                >
+                  <Award className="w-4 h-4" />
+                  <span>Claim Completion Certificate</span>
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
               {course?.lectures?.map((lecture, index) => {
                 const isObj = typeof lecture === "object";
                 const lectureId = isObj ? lecture._id : lecture;
                 const isActive = selectedLecture?._id === lectureId;
+                const isDone = completedLectures.some(
+                  (id) => id?.toString() === lectureId?.toString()
+                );
                 const title = isObj
                   ? lecture.lectureTitle || lecture.title
                   : `Lecture ${index + 1}`;
@@ -642,11 +775,7 @@ function ViewLecture() {
                 return (
                   <button
                     key={lectureId || index}
-                    onClick={() => {
-                      if (isObj) {
-                        setSelectedLecture(lecture);
-                      }
-                    }}
+                    onClick={() => isObj && setSelectedLecture(lecture)}
                     className={`w-full p-3.5 rounded-2xl text-left text-xs font-semibold transition-all flex items-center justify-between border cursor-pointer ${
                       isActive
                         ? "bg-indigo-600/20 border-indigo-500 text-white"
@@ -657,8 +786,9 @@ function ViewLecture() {
                       <span className="font-mono text-slate-500">{index + 1}.</span>
                       <span className="truncate">{title}</span>
                     </div>
-                    {isActive ? (
-                      <CheckCircle className="w-4 h-4 text-indigo-400 flex-shrink-0" />
+
+                    {isDone ? (
+                      <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                     ) : (
                       <PlayCircle className="w-4 h-4 text-slate-600 flex-shrink-0" />
                     )}
@@ -669,6 +799,68 @@ function ViewLecture() {
           </div>
         </div>
       </div>
+
+      {showCertificateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
+          <div className="relative w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase">
+                <Sparkles className="w-4 h-4" />
+                <span>Verified Course Certificate</span>
+              </div>
+              <button
+                onClick={() => setShowCertificateModal(false)}
+                className="p-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div
+              ref={certRef}
+              className="p-10 bg-slate-950 border-4 border-amber-500/40 rounded-2xl text-center space-y-6 font-serif relative overflow-hidden"
+            >
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-widest text-amber-400 font-sans font-extrabold">
+                  Certificate of Completion
+                </p>
+                <h2 className="text-3xl font-bold text-white font-sans">
+                  Virtual Courses LMS
+                </h2>
+              </div>
+
+              <p className="text-xs text-slate-400 font-sans">
+                This certifies that
+              </p>
+
+              <h3 className="text-2xl font-black text-amber-300 font-sans tracking-wide">
+                {user?.name || "Student Name"}
+              </h3>
+
+              <p className="text-xs text-slate-400 font-sans max-w-md mx-auto">
+                has successfully completed all lectures and coursework for
+              </p>
+
+              <h4 className="text-lg font-bold text-indigo-300 font-sans">
+                "{course?.title || course?.courseTitle}"
+              </h4>
+
+              <div className="pt-6 flex justify-between items-center text-[10px] text-slate-500 font-sans border-t border-slate-800">
+                <span>Date: {new Date().toLocaleDateString()}</span>
+                <span>Instructor Verified • Virtual Courses</span>
+              </div>
+            </div>
+
+            <button
+              onClick={downloadCertificate}
+              className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download PDF Certificate</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

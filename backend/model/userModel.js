@@ -4,94 +4,53 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "Name is required"],
+      required: true,
       trim: true,
-      minlength: 2,
-      maxlength: 50,
     },
-
     email: {
       type: String,
-      required: [true, "Email is required"],
+      required: true,
       unique: true,
-      lowercase: true,
       trim: true,
+      lowercase: true,
     },
-
     password: {
       type: String,
-      required: function () {
-        return !this.googleId;
-      },
-      minlength: 8,
-      select: false,
-    },
-
-    googleId: {
-      type: String,
-      default: null,
-      unique: true,
-      sparse: true,
-    },
-
-    description: {
-      type: String,
-      default: "",
-      maxlength: 500,
-      trim: true,
-    },
-
-    role: {
-      type: String,
-      enum: ["student", "educator"],
-      default: "student",
       required: true,
     },
-
+    role: {
+      type: String,
+      enum: ["student", "instructor", "educator"],
+      default: "student",
+    },
     photoUrl: {
       type: String,
       default: "",
     },
-
+    photoPublicId: {
+      type: String,
+      default: "",
+    },
+    description: {
+      type: String,
+      default: "",
+    },
     enrolledCourses: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Course",
       },
     ],
-
-    resetOtp: {
-      type: String,
-      default: null,
-    },
-
-    otpExpires: {
-      type: Date,
-      default: null,
-    },
-
-    isOtpVerified: {
-      type: Boolean,
-      default: false,
-    },
+    // Tracks completed lectures across all enrolled courses
+    completedLectures: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Lecture",
+      },
+    ],
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// Remove sensitive data before sending response
-userSchema.methods.toJSON = function () {
-  const user = this.toObject();
-
-  delete user.password;
-  delete user.resetOtp;
-  delete user.otpExpires;
-  delete user.isOtpVerified;
-
-  return user;
-};
-
-const User = mongoose.model("User", userSchema);
-
+const User = mongoose.models.User || mongoose.model("User", userSchema);
 export default User;

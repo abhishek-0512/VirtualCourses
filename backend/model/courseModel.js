@@ -162,6 +162,6 @@ courseSchema.index({
   description: "text",
 });
 
-const Course = mongoose.model("Course", courseSchema);
+const Course = mongoose.models.Course || mongoose.model("Course", courseSchema);
 
 export default Course;

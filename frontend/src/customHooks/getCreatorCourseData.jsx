@@ -12,11 +12,11 @@ const useGetCreatorCourseData = () => {
     let isMounted = true;
 
     const getCreatorCourses = async () => {
-      if (!userData || userData.role !== "educator") return;
+      if (!userData || (userData.role !== "educator" && userData.role !== "instructor")) return;
 
       try {
         const { data } = await axios.get(
-          `${serverUrl}/api/course/creator/courses`,
+          `${serverUrl}/api/course/creator-courses`,
           { withCredentials: true }
         );
 

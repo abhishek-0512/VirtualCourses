@@ -2,7 +2,7 @@ import {
   uploadOnCloudinary,
   deleteFromCloudinary,
 } from "../config/cloudinary.js";
-
+import mongoose from "mongoose";
 import Course from "../model/courseModel.js";
 import User from "../model/userModel.js";
 
@@ -14,7 +14,7 @@ export const createCourse = async (req, res) => {
   try {
     let { title, category } = req.body;
 
-    const userId = req.userId || req.user?.id;
+    const userId = req.userId || req.user?.id || req.user?._id;
 
     if (!title || !category) {
       return res.status(400).json({
@@ -86,7 +86,14 @@ export const getPublishedCourses = async (req, res) => {
 
 export const getCreatorCourses = async (req, res) => {
   try {
-    const userId = req.userId || req.user?.id;
+    const userId = req.userId || req.user?.id || req.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: User ID missing",
+      });
+    }
 
     const courses = await Course.find({
       creator: userId,
@@ -151,7 +158,7 @@ export const getCourseById = async (req, res) => {
 export const editCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const userId = req.userId || req.user?.id;
+    const userId = req.userId || req.user?.id || req.user?._id;
 
     const course = await Course.findById(courseId);
 
@@ -162,7 +169,7 @@ export const editCourse = async (req, res) => {
       });
     }
 
-    if (course.creator.toString() !== userId) {
+    if (course.creator.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
         message: "Unauthorized",
@@ -223,7 +230,7 @@ export const editCourse = async (req, res) => {
 export const removeCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const userId = req.userId || req.user?.id;
+    const userId = req.userId || req.user?.id || req.user?._id;
 
     const course = await Course.findById(courseId);
 
@@ -234,7 +241,7 @@ export const removeCourse = async (req, res) => {
       });
     }
 
-    if (course.creator.toString() !== userId) {
+    if (course.creator.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
         message: "Unauthorized",
@@ -286,6 +293,87 @@ export const getCreatorById = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+/* ===========================================================
+            TOGGLE LECTURE COMPLETION FOR USER
+=========================================================== */
+
+export const toggleLectureCompletion = async (req, res) => {
+  try {
+    const { lectureId } = req.body;
+    const userId = req.userId || req.user?.id || req.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: User ID missing",
+      });
+    }
+
+    if (!lectureId) {
+      return res.status(400).json({
+        success: false,
+        message: "Lecture ID is required",
+      });
+    }
+
+    // Safely extract string ID whether passed as raw string, object with _id, or Mongoose ObjectId
+    let targetIdStr = "";
+    if (typeof lectureId === "string") {
+      targetIdStr = lectureId;
+    } else if (lectureId?._id) {
+      targetIdStr = lectureId._id.toString();
+    } else if (typeof lectureId?.toString === "function") {
+      targetIdStr = lectureId.toString();
+    }
+
+    if (!targetIdStr || !mongoose.Types.ObjectId.isValid(targetIdStr)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid lecture ID format",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Ensure array is initialized
+    if (!Array.isArray(user.completedLectures)) {
+      user.completedLectures = [];
+    }
+
+    const isCompleted = user.completedLectures.some(
+      (id) => id && id.toString() === targetIdStr
+    );
+
+    if (isCompleted) {
+      user.completedLectures = user.completedLectures.filter(
+        (id) => id && id.toString() !== targetIdStr
+      );
+    } else {
+      user.completedLectures.push(targetIdStr);
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: isCompleted ? "Marked as incomplete" : "Lecture completed!",
+      completedLectures: user.completedLectures,
+    });
+  } catch (error) {
+    console.error("Critical Toggle Completion Crash:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Server error while updating lecture completion",
     });
   }
 };

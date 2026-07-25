@@ -34,12 +34,18 @@ import useGetCourseData from "./customHooks/getCouseData";
 import useGetCreatorCourseData from "./customHooks/getCreatorCourseData";
 import useGetAllReviews from "./customHooks/getAllReviews";
 
-export const serverUrl = "http://localhost:8000";
+// Dynamic Server URL for Production Deployment (Vercel / Netlify environment variable)
+export const serverUrl =
+  import.meta.env.VITE_SERVER_URL || "http://localhost:8000";
 
 // --- Route Guard Helpers ---
 const ProtectedRoute = ({ user, role, children }) => {
   if (!user) return <Navigate to="/login" replace />;
-  if (role && user.role !== role) return <Navigate to="/" replace />;
+  
+  // Allow matching either educator or instructor role definitions
+  if (role && user.role !== role && user.role !== "instructor") {
+    return <Navigate to="/" replace />;
+  }
   return children;
 };
 
@@ -51,13 +57,13 @@ const PublicOnlyRoute = ({ user, children }) => {
 function App() {
   const { userData, loading } = useSelector((state) => state.user);
 
-  // Initialize data
+  // Initialize global application data
   useGetCurrentUser();
   useGetCourseData();
   useGetCreatorCourseData();
   useGetAllReviews();
 
-  // Prevent flash while checking auth token
+  // Prevent UI flash while checking authentication state
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-950">
@@ -209,11 +215,11 @@ function App() {
           }
         />
 
-        {/* Fallback Catch-All */}
+        {/* Fallback Catch-All Route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {/* Site-wide Gemini Voice Assistant Badge */}
+      {/* Site-wide Gemini Voice Assistant */}
       <GeminiVoiceAssistant />
     </>
   );
