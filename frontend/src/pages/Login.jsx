@@ -27,6 +27,9 @@ function Login() {
       );
 
       if (data.success) {
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+        }
         toast.success(data.message || "Welcome back!");
         dispatch(setUserData(data.user));
         navigate("/");

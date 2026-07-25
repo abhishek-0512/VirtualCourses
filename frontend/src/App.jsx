@@ -2,6 +2,7 @@ import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import { useSelector } from "react-redux";
+import axios from "axios";
 
 // Pages
 import Home from "./pages/Home";
@@ -37,6 +38,15 @@ import useGetAllReviews from "./customHooks/getAllReviews";
 // Dynamic Server URL for Production Deployment (Vercel / Netlify environment variable)
 export const serverUrl =
   import.meta.env.VITE_SERVER_URL || "http://localhost:8000";
+
+// Attach JWT token from localStorage to every outgoing request
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 // --- Route Guard Helpers ---
 const ProtectedRoute = ({ user, role, children }) => {

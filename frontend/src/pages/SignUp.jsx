@@ -37,6 +37,9 @@ function SignUp() {
       );
 
       if (data.success) {
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+        }
         toast.success(data.message || "Account created successfully!");
         
         if (data.user) {
