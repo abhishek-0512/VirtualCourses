@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { ArrowLeft, Video, Upload, Sparkles } from "lucide-react";
+import { ArrowLeft, Video, Upload, Sparkles, Film, CheckCircle2, Loader2 } from "lucide-react";
 import { serverUrl } from "../../App";
 import Nav from "../../component/Nav";
 
@@ -14,6 +14,14 @@ function CreateLecture() {
   const [video, setVideo] = useState(null);
   const [isPreviewFree, setIsPreviewFree] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Format bytes to readable MB/KB
+  const formatFileSize = (bytes) => {
+    if (!bytes) return "";
+    const mb = bytes / (1024 * 1024);
+    if (mb >= 1) return `${mb.toFixed(1)} MB`;
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -62,8 +70,8 @@ function CreateLecture() {
           <span>Back to Course Editor</span>
         </button>
 
-        <div className="p-8 rounded-3xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl shadow-2xl">
-          <div className="flex items-center gap-3 mb-6">
+        <div className="p-8 rounded-3xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl shadow-2xl space-y-6">
+          <div className="flex items-center gap-3 pb-4 border-b border-slate-800">
             <div className="w-10 h-10 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
               <Video className="w-5 h-5" />
             </div>
@@ -80,7 +88,7 @@ function CreateLecture() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                Lecture Title
+                Lecture Title <span className="text-red-400">*</span>
               </label>
               <input
                 type="text"
@@ -94,13 +102,32 @@ function CreateLecture() {
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                Video File
+                Video File (MP4, WEBM, MOV) <span className="text-red-400">*</span>
               </label>
-              <div className="relative p-6 border-2 border-dashed border-slate-800 rounded-2xl bg-slate-950/60 text-center hover:border-indigo-500/50 transition-all cursor-pointer">
-                <Upload className="w-8 h-8 text-slate-500 mx-auto mb-2" />
-                <p className="text-xs text-slate-300 font-medium">
-                  {video ? video.name : "Click to select or drop video file (MP4, WEBM)"}
-                </p>
+              <div className={`relative p-6 border-2 border-dashed rounded-2xl bg-slate-950/60 text-center transition-all cursor-pointer ${
+                video ? "border-indigo-500 bg-indigo-950/10" : "border-slate-800 hover:border-indigo-500/50"
+              }`}>
+                {video ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-400 animate-bounce" />
+                    <p className="text-xs text-white font-bold truncate max-w-md">
+                      {video.name}
+                    </p>
+                    <span className="text-[10px] text-indigo-400 font-semibold px-2.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30">
+                      {formatFileSize(video.size)} • Click or drag to swap file
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2">
+                    <Upload className="w-8 h-8 text-slate-500" />
+                    <p className="text-xs text-slate-300 font-medium">
+                      Click to select or drag video file here
+                    </p>
+                    <p className="text-[10px] text-slate-500">
+                      Supports MP4, WEBM, MOV (Max recommended size: 500MB)
+                    </p>
+                  </div>
+                )}
                 <input
                   type="file"
                   accept="video/*"
@@ -111,25 +138,35 @@ function CreateLecture() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 pt-1">
               <input
                 type="checkbox"
                 id="preview"
                 checked={isPreviewFree}
                 onChange={(e) => setIsPreviewFree(e.target.checked)}
-                className="w-4 h-4 accent-indigo-500 rounded"
+                className="w-4 h-4 accent-indigo-500 rounded cursor-pointer"
               />
-              <label htmlFor="preview" className="text-sm text-slate-300 font-medium cursor-pointer">
-                Allow as Free Preview (non-enrolled students can watch)
+              <label htmlFor="preview" className="text-xs font-semibold text-slate-300 cursor-pointer">
+                Allow as Free Preview (Non-enrolled students can watch this video)
               </label>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {loading ? "Uploading Video..." : "Upload & Save Lecture"}
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Uploading Video to Cloud Stream...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  <span>Upload & Save Lecture</span>
+                </>
+              )}
             </button>
           </form>
         </div>

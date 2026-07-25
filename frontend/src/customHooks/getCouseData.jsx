@@ -1,44 +1,40 @@
 import { useEffect } from "react";
 import axios from "axios";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { serverUrl } from "../App";
 import { setCourseData } from "../redux/courseSlice";
 
 const useGetCourseData = () => {
   const dispatch = useDispatch();
-  const { userData } = useSelector((state) => state.user);
 
   useEffect(() => {
+    let isMounted = true;
+
     const getCourses = async () => {
       try {
-        let endpoint = `${serverUrl}/api/course/published`;
-
-        // Educators should see all of their own courses
-        if (userData?.role === "educator") {
-          endpoint = `${serverUrl}/api/course/creator/courses`;
-        }
-
-        const { data } = await axios.get(endpoint, {
+        const { data } = await axios.get(`${serverUrl}/api/course/published`, {
           withCredentials: true,
         });
 
-        if (data.success) {
-          dispatch(
-            setCourseData(data.courses || [])
-          );
+        if (data.success && isMounted) {
+          const coursesList =
+            data.courses || data.publishedCourses || data.allCourses || [];
+          dispatch(setCourseData(coursesList));
         }
       } catch (error) {
-        console.error(
-          "Get Course Error:",
-          error.response?.data || error
-        );
-
-        dispatch(setCourseData([]));
+        console.error("Get Course Error:", error.response?.data || error);
+        if (isMounted) {
+          dispatch(setCourseData([]));
+        }
       }
     };
 
     getCourses();
-  }, [dispatch, userData]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [dispatch]);
 };
 
 export default useGetCourseData;

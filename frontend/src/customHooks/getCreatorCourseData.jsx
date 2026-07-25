@@ -1,88 +1,46 @@
 import { useEffect } from "react";
 import axios from "axios";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { serverUrl } from "../App";
 import { setCreatorCourseData } from "../redux/courseSlice";
 
-
 const useGetCreatorCourseData = () => {
-
-
   const dispatch = useDispatch();
-
-
+  const { userData } = useSelector((state) => state.user);
 
   useEffect(() => {
-
+    let isMounted = true;
 
     const getCreatorCourses = async () => {
-
+      if (!userData || userData.role !== "educator") return;
 
       try {
-
-
         const { data } = await axios.get(
-
           `${serverUrl}/api/course/creator/courses`,
-
-          {
-            withCredentials:true
-          }
-
+          { withCredentials: true }
         );
 
-
-        console.log(
-          "Creator Course API:",
-          data
-        );
-
-
-
-        if(data.success){
-
-
-          dispatch(
-
-            setCreatorCourseData(
-              data.courses
-            )
-
-          );
-
-
+        if (data.success && isMounted) {
+          const creatorCourses =
+            data.courses || data.creatorCourses || data.allCourses || [];
+          dispatch(setCreatorCourseData(creatorCourses));
         }
-
-
-
+      } catch (error) {
+        if (error.response?.status !== 401 && isMounted) {
+          console.error(
+            "Creator Course Fetch Error:",
+            error.response?.data?.message || error.message
+          );
+        }
       }
-      catch(error){
-
-
-        console.log(
-
-          "Creator Course Error:",
-          error.response?.data || error
-
-        );
-
-
-      }
-
-
     };
-
-
 
     getCreatorCourses();
 
-
-
-  },[dispatch]);
-
-
-
+    return () => {
+      isMounted = false;
+    };
+  }, [userData?.role, userData?._id, dispatch]);
 };
-
 
 export default useGetCreatorCourseData;

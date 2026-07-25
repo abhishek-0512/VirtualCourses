@@ -2,83 +2,35 @@ import { useEffect } from "react";
 import axios from "axios";
 import { useDispatch } from "react-redux";
 import { serverUrl } from "../App";
-import { setAllReview } from "../redux/reviewSlice";
-
 
 const useGetAllReviews = () => {
-
-
   const dispatch = useDispatch();
 
-
-
   useEffect(() => {
+    let isMounted = true;
 
-
-    const getReviews = async () => {
-
-
+    const fetchReviews = async () => {
       try {
+        const { data } = await axios.get(`${serverUrl}/api/review/all`, {
+          withCredentials: true,
+        });
 
-
-        const { data } = await axios.get(
-
-          `${serverUrl}/api/review/allreviews`,
-
-          {
-            withCredentials:true
-          }
-
-        );
-
-
-        console.log(
-          "Reviews API:",
-          data
-        );
-
-
-
-        if(data.success){
-
-
-          dispatch(
-            setAllReview(data.reviews)
-          );
-
-
+        if (data.success && isMounted) {
+          // Dispatch review state to Redux if implemented
         }
-
-
-
+      } catch (error) {
+        if (error.response?.status !== 404 && isMounted) {
+          console.error("Review fetch error:", error.message);
+        }
       }
-      catch(error){
-
-
-        console.log(
-
-          "Review Fetch Error:",
-          error.response?.data || error
-
-        );
-
-
-      }
-
-
     };
 
+    fetchReviews();
 
-
-    getReviews();
-
-
-
-  },[dispatch]);
-
-
-
+    return () => {
+      isMounted = false;
+    };
+  }, [dispatch]);
 };
-
 
 export default useGetAllReviews;

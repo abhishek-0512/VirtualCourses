@@ -29,16 +29,22 @@ function SignUp() {
     setLoading(true);
 
     try {
+      // Endpoint updated to /api/auth/signup to match backend authRoute.js
       const { data } = await axios.post(
-        `${serverUrl}/api/auth/register`,
+        `${serverUrl}/api/auth/signup`,
         { name, email, password, role },
         { withCredentials: true }
       );
 
       if (data.success) {
         toast.success(data.message || "Account created successfully!");
-        dispatch(setUserData(data.user));
-        navigate("/");
+        
+        if (data.user) {
+          dispatch(setUserData(data.user));
+          navigate("/");
+        } else {
+          navigate("/login");
+        }
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Registration failed");
@@ -51,7 +57,6 @@ function SignUp() {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 font-sans">
       <div className="w-full max-w-md p-8 sm:p-10 rounded-3xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl shadow-2xl space-y-6">
         
-        {/* Logo & Headline */}
         <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white shadow-lg shadow-indigo-500/25 mb-2">
             <GraduationCap className="w-6 h-6" />
@@ -63,8 +68,6 @@ function SignUp() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          
-          {/* Full Name Input */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
               Full Name
@@ -82,7 +85,6 @@ function SignUp() {
             </div>
           </div>
 
-          {/* Email Input */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
               Email Address
@@ -100,7 +102,6 @@ function SignUp() {
             </div>
           </div>
 
-          {/* Password Input */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
               Password
@@ -118,7 +119,6 @@ function SignUp() {
             </div>
           </div>
 
-          {/* Role Selection Toggle */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
               I want to join as a

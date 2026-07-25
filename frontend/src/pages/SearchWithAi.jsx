@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, Send, ArrowLeft, Bot, User, Compass, BookOpen } from "lucide-react";
+import { Sparkles, Send, ArrowLeft, Bot, BookOpen } from "lucide-react";
 import { serverUrl } from "../App";
 import Nav from "../component/Nav";
 import Card from "../component/Card";
@@ -28,12 +28,15 @@ function SearchWithAi() {
     try {
       const { data } = await axios.post(
         `${serverUrl}/api/ai/search`,
-        { query: textToSearch },
+        { input: textToSearch, query: textToSearch }, // Sends both input and query for backward compatibility
         { withCredentials: true }
       );
 
-      if (data.success) {
-        setResponse(data);
+      if (data.success || data.courses || data.matchedCourses) {
+        setResponse({
+          message: data.message || data.aiResponse || "Recommended courses based on your query:",
+          courses: data.matchedCourses || data.courses || [],
+        });
       }
     } catch (error) {
       console.error("AI Search Error:", error);
@@ -50,7 +53,7 @@ function SearchWithAi() {
         {/* Back Button */}
         <button
           onClick={() => navigate("/allcourses")}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white transition-colors mb-6 group"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white transition-colors mb-6 group cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
           <span>Back to Courses</span>
@@ -87,7 +90,7 @@ function SearchWithAi() {
             <button
               onClick={() => handleSearch()}
               disabled={loading || !query.trim()}
-              className="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-indigo-500/25 transition-all"
+              className="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-indigo-500/25 transition-all cursor-pointer"
             >
               <span>{loading ? "Searching..." : "Ask AI"}</span>
               <Send className="w-3.5 h-3.5" />
@@ -104,7 +107,7 @@ function SearchWithAi() {
                   setQuery(prompt);
                   handleSearch(prompt);
                 }}
-                className="text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-indigo-300 px-3 py-1.5 rounded-full transition-all"
+                className="text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-indigo-300 px-3 py-1.5 rounded-full transition-all cursor-pointer"
               >
                 "{prompt}"
               </button>
@@ -132,25 +135,25 @@ function SearchWithAi() {
                 <h3 className="text-base font-bold text-white">AI Assistant Insights</h3>
               </div>
               <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">
-                {response.message || response.aiResponse}
+                {response.message}
               </p>
             </div>
 
             {/* Matching Courses Grid */}
-            {response.matchedCourses?.length > 0 && (
+            {response.courses?.length > 0 && (
               <div>
                 <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-indigo-400" />
                   <span>Recommended Courses</span>
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {response.matchedCourses.map((course) => (
+                  {response.courses.map((course) => (
                     <Card
                       key={course._id}
                       id={course._id}
-                      thumbnail={course.thumbnail}
-                      title={course.title}
-                      price={course.price}
+                      thumbnail={course.thumbnail || course.courseThumbnail}
+                      title={course.title || course.courseTitle}
+                      price={course.price ?? course.coursePrice}
                       category={course.category}
                       reviews={course.reviews}
                     />

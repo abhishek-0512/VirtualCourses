@@ -16,7 +16,7 @@ import courseRouter from "./route/courseRoute.js";
 import lectureRouter from "./route/lectureRoute.js";
 import aiRouter from "./route/aiRoutes.js";
 import reviewRouter from "./route/reviewRoute.js";
-import paymentRouter from "./route/paymentRoutes.js"; // or ./route/paymentRoutes.js if moved
+import paymentRouter from "./route/paymentRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -57,6 +57,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
+  "http://127.0.0.1:5173",
   process.env.FRONTEND_URL?.replace(/\/$/, ""),
 ].filter(Boolean);
 
@@ -129,7 +130,7 @@ app.use((err, req, res, next) => {
 const startServer = async () => {
   try {
     await connectDb();
-    app.listen(PORT, () => {
+    app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });
   } catch (error) {

@@ -1,9 +1,11 @@
-import express from "express"
+import express from "express";
+import isAuth from "../middleware/isAuth.js";
 import { createOrder, verifyPayment } from "../controller/orderController.js";
 
-let paymentRouter = express.Router()
+const paymentRouter = express.Router();
 
-paymentRouter.post("/create-order", createOrder);
-paymentRouter.post("/verify-payment", verifyPayment);
+// Require authentication before creating orders or verifying payments
+paymentRouter.post("/create-order", isAuth, createOrder);
+paymentRouter.post("/verify-payment", isAuth, verifyPayment);
 
-export default paymentRouter
+export default paymentRouter;

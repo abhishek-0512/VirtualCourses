@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import { useSelector } from "react-redux";
 
+// Pages
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
@@ -23,9 +24,11 @@ import EnrolledCourses from "./pages/EnrolledCourses";
 import ViewLecture from "./pages/ViewLecture";
 import SearchWithAi from "./pages/SearchWithAi";
 
+// Components
 import ScrollToTop from "./component/ScrollToTop";
+import GeminiVoiceAssistant from "./component/GeminiVoiceAssistant";
 
-// ✅ Custom Hooks
+// Custom Hooks
 import useGetCurrentUser from "./customHooks/getCurrentUser";
 import useGetCourseData from "./customHooks/getCouseData";
 import useGetCreatorCourseData from "./customHooks/getCreatorCourseData";
@@ -33,14 +36,35 @@ import useGetAllReviews from "./customHooks/getAllReviews";
 
 export const serverUrl = "http://localhost:8000";
 
-function App() {
-  const { userData } = useSelector((state) => state.user);
+// --- Route Guard Helpers ---
+const ProtectedRoute = ({ user, role, children }) => {
+  if (!user) return <Navigate to="/login" replace />;
+  if (role && user.role !== role) return <Navigate to="/" replace />;
+  return children;
+};
 
-  // Custom Hooks
+const PublicOnlyRoute = ({ user, children }) => {
+  if (user) return <Navigate to="/" replace />;
+  return children;
+};
+
+function App() {
+  const { userData, loading } = useSelector((state) => state.user);
+
+  // Initialize data
   useGetCurrentUser();
   useGetCourseData();
   useGetCreatorCourseData();
   useGetAllReviews();
+
+  // Prevent flash while checking auth token
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-950">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -50,105 +74,147 @@ function App() {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
+
+        {/* Auth Routes (Only accessible when logged out) */}
+        <Route
+          path="/login"
+          element={
+            <PublicOnlyRoute user={userData}>
+              <Login />
+            </PublicOnlyRoute>
+          }
+        />
         <Route
           path="/signup"
-          element={!userData ? <SignUp /> : <Navigate to="/" />}
+          element={
+            <PublicOnlyRoute user={userData}>
+              <SignUp />
+            </PublicOnlyRoute>
+          }
         />
-        <Route path="/forgotpassword" element={<ForgotPassword />} />
+        <Route
+          path="/forgotpassword"
+          element={
+            <PublicOnlyRoute user={userData}>
+              <ForgotPassword />
+            </PublicOnlyRoute>
+          }
+        />
 
         {/* Student Routes */}
         <Route
           path="/profile"
-          element={userData ? <Profile /> : <Navigate to="/signup" />}
+          element={
+            <ProtectedRoute user={userData}>
+              <Profile />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/editprofile"
-          element={userData ? <EditProfile /> : <Navigate to="/signup" />}
+          element={
+            <ProtectedRoute user={userData}>
+              <EditProfile />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/allcourses"
-          element={userData ? <AllCourses /> : <Navigate to="/signup" />}
+          element={
+            <ProtectedRoute user={userData}>
+              <AllCourses />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/viewcourse/:courseId"
-          element={userData ? <ViewCourse /> : <Navigate to="/signup" />}
+          element={
+            <ProtectedRoute user={userData}>
+              <ViewCourse />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/enrolledcourses"
-          element={userData ? <EnrolledCourses /> : <Navigate to="/signup" />}
+          element={
+            <ProtectedRoute user={userData}>
+              <EnrolledCourses />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/viewlecture/:courseId"
-          element={userData ? <ViewLecture /> : <Navigate to="/signup" />}
+          element={
+            <ProtectedRoute user={userData}>
+              <ViewLecture />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/searchwithai"
-          element={userData ? <SearchWithAi /> : <Navigate to="/signup" />}
+          element={
+            <ProtectedRoute user={userData}>
+              <SearchWithAi />
+            </ProtectedRoute>
+          }
         />
 
         {/* Educator Routes */}
         <Route
           path="/dashboard"
           element={
-            userData?.role === "educator" ? (
+            <ProtectedRoute user={userData} role="educator">
               <Dashboard />
-            ) : (
-              <Navigate to="/signup" />
-            )
+            </ProtectedRoute>
           }
         />
         <Route
           path="/courses"
           element={
-            userData?.role === "educator" ? (
+            <ProtectedRoute user={userData} role="educator">
               <Courses />
-            ) : (
-              <Navigate to="/signup" />
-            )
+            </ProtectedRoute>
           }
         />
         <Route
           path="/addcourses/:courseId"
           element={
-            userData?.role === "educator" ? (
+            <ProtectedRoute user={userData} role="educator">
               <AddCourses />
-            ) : (
-              <Navigate to="/signup" />
-            )
+            </ProtectedRoute>
           }
         />
         <Route
           path="/createcourses"
           element={
-            userData?.role === "educator" ? (
+            <ProtectedRoute user={userData} role="educator">
               <CreateCourse />
-            ) : (
-              <Navigate to="/signup" />
-            )
+            </ProtectedRoute>
           }
         />
         <Route
           path="/createlecture/:courseId"
           element={
-            userData?.role === "educator" ? (
+            <ProtectedRoute user={userData} role="educator">
               <CreateLecture />
-            ) : (
-              <Navigate to="/signup" />
-            )
+            </ProtectedRoute>
           }
         />
         <Route
           path="/editlecture/:courseId/:lectureId"
           element={
-            userData?.role === "educator" ? (
+            <ProtectedRoute user={userData} role="educator">
               <EditLecture />
-            ) : (
-              <Navigate to="/signup" />
-            )
+            </ProtectedRoute>
           }
         />
+
+        {/* Fallback Catch-All */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {/* Site-wide Gemini Voice Assistant Badge */}
+      <GeminiVoiceAssistant />
     </>
   );
 }

@@ -3,7 +3,7 @@ import axios from "axios";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { ArrowLeft, User, Upload, Camera } from "lucide-react";
+import { ArrowLeft, Camera } from "lucide-react";
 import { setUserData } from "../redux/userSlice";
 import { serverUrl } from "../App";
 import Nav from "../component/Nav";
@@ -13,9 +13,17 @@ function EditProfile() {
   const dispatch = useDispatch();
   const { userData } = useSelector((state) => state.user);
 
+  const defaultAvatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
+    userData?.name || "User"
+  )}`;
+
   const [name, setName] = useState(userData?.name || "");
   const [photo, setPhoto] = useState(null);
-  const [preview, setPreview] = useState(userData?.photoUrl || "");
+  const [preview, setPreview] = useState(
+    userData?.photoUrl && !userData.photoUrl.includes("avatar.iran.liara.run")
+      ? userData.photoUrl
+      : defaultAvatar
+  );
   const [loading, setLoading] = useState(false);
 
   const handleImageChange = (e) => {
@@ -37,8 +45,9 @@ function EditProfile() {
     }
 
     try {
+      // Fixed: Updated path to match backend userRouter (/api/user/updateprofile)
       const { data } = await axios.put(
-        `${serverUrl}/api/user/profile`,
+        `${serverUrl}/api/user/updateprofile`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -46,12 +55,15 @@ function EditProfile() {
         }
       );
 
-      if (data.success) {
+      const updatedUser = data.user || data;
+
+      if (data.success || updatedUser) {
         toast.success("Profile updated successfully!");
-        dispatch(setUserData(data.user));
+        dispatch(setUserData(updatedUser));
         navigate("/profile");
       }
     } catch (error) {
+      console.error("Profile update error:", error);
       toast.error(error.response?.data?.message || "Profile update failed");
     } finally {
       setLoading(false);
@@ -65,7 +77,7 @@ function EditProfile() {
       <div className="max-w-2xl mx-auto pt-24 pb-20 px-4 sm:px-6">
         <button
           onClick={() => navigate("/profile")}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white transition-colors mb-6 group"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white transition-colors mb-6 group cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
           <span>Back to Profile</span>
@@ -75,14 +87,17 @@ function EditProfile() {
           <h1 className="text-2xl font-black text-white">Edit Profile</h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            
             {/* Avatar Upload */}
             <div className="flex flex-col items-center justify-center space-y-3">
               <div className="relative group">
                 <img
-                  src={preview || "https://avatar.iran.liara.run/public"}
+                  src={preview}
                   alt="Profile Avatar"
                   className="w-28 h-28 rounded-full object-cover border-4 border-indigo-500/40 shadow-xl"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = defaultAvatar;
+                  }}
                 />
                 <label className="absolute inset-0 bg-slate-950/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
                   <Camera className="w-6 h-6 text-white" />
@@ -116,7 +131,7 @@ function EditProfile() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
             >
               {loading ? "Saving Changes..." : "Save Profile Settings"}
             </button>

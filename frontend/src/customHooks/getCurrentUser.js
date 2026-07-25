@@ -12,16 +12,23 @@ const useGetCurrentUser = () => {
     const fetchCurrentUser = async () => {
       try {
         const { data } = await axios.get(
-          `${serverUrl}/api/user/currentuser`,
+          `${serverUrl}/api/auth/current`, // Updated to match backend authRoute.js
           {
             withCredentials: true,
           }
         );
 
-        dispatch(setUserData(data));
+        if (data.success) {
+          dispatch(setUserData(data.user || data));
+        }
       } catch (error) {
-        console.error("Failed to fetch current user:", error);
-        dispatch(setUserData(null));
+        // 401 is normal when no user is logged in — handle quietly without error logs
+        if (error.response?.status === 401) {
+          dispatch(setUserData(null));
+        } else {
+          console.error("Failed to fetch current user:", error);
+          dispatch(setUserData(null));
+        }
       }
     };
 
