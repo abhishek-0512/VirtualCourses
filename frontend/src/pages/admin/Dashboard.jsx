@@ -1,96 +1,195 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import img from "../../assets/empty.jpg";
 import { useNavigate } from "react-router-dom";
-import { FaArrowLeftLong } from "react-icons/fa6";
+import { 
+  BookOpen, 
+  Users, 
+  PlusCircle, 
+  IndianRupee, 
+  Sparkles, 
+  Edit3, 
+  Plus, 
+  Eye,
+  TrendingUp,
+  Award
+} from "lucide-react";
+import Nav from "../../component/Nav";
 
 function Dashboard() {
   const navigate = useNavigate();
+  const { creatorCourseData = [] } = useSelector((state) => state.course);
   const { userData } = useSelector((state) => state.user);
-  const { creatorCourseData } = useSelector((state) => state.course);
 
-  const courseProgressData = creatorCourseData?.map((course) => ({
-    name: course.title.slice(0, 10) + (course.title.length > 10 ? "..." : ""),
-    lectures: course.lectures?.length || 0,
-  })) || [];
-
-  const enrollData = creatorCourseData?.map((course) => ({
-    name: course.title.slice(0, 10) + (course.title.length > 10 ? "..." : ""),
-    enrolled: course.enrolledStudents?.length || 0,
-  })) || [];
-
-  const totalEarnings = creatorCourseData?.reduce((sum, course) => {
-    const studentCount = course.enrolledStudents?.length || 0;
-    const courseRevenue = course.price ? course.price * studentCount : 0;
-    return sum + courseRevenue;
-  }, 0) || 0;
+  // Stats Calculations
+  const totalCourses = creatorCourseData.length;
+  const totalStudents = creatorCourseData.reduce(
+    (sum, course) => sum + (course.enrolledStudents?.length || 0),
+    0
+  );
+  const publishedCourses = creatorCourseData.filter(
+    (course) => course.isPublished
+  ).length;
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(135deg,_#f8fafc_0%,_#eef2ff_100%)] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <button className="mb-6 flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50" onClick={() => navigate("/")}>
-          <FaArrowLeftLong className="h-4 w-4" />
-          Back home
-        </button>
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
+      <Nav />
 
-        <div className="rounded-[32px] border border-slate-200 bg-white/90 p-6 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.2)] backdrop-blur sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-4">
-              <img src={userData?.photoUrl || img} alt="Educator" className="h-20 w-20 rounded-full border-4 border-slate-900 object-cover shadow-lg" />
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Instructor dashboard</p>
-                <h1 className="mt-1 text-2xl font-semibold text-slate-900">Welcome back, {userData?.name || "Educator"} 👋</h1>
-                <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600">{userData?.description || "Create new learning experiences and keep your students engaged."}</p>
-              </div>
+      <div className="max-w-7xl mx-auto pt-24 pb-20 px-4 sm:px-6 lg:px-8">
+        
+        {/* Welcome Header & Action */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-indigo-300 mb-2">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Creator Studio</span>
             </div>
-            <button className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800" onClick={() => navigate("/courses")}>Create a course</button>
+            <h1 className="text-3xl font-extrabold text-white tracking-tight">
+              Welcome back, {userData?.name?.split(" ")[0] || "Instructor"}!
+            </h1>
+            <p className="text-slate-400 text-sm mt-1">
+              Manage your published content, monitor student engagement, and add new courses.
+            </p>
           </div>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {[
-              { label: "Total revenue", value: `₹${totalEarnings.toLocaleString()}` },
-              { label: "Courses", value: creatorCourseData?.length || 0 },
-              { label: "Students", value: creatorCourseData?.reduce((sum, course) => sum + (course.enrolledStudents?.length || 0), 0) || 0 },
-            ].map((stat) => (
-              <div key={stat.label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-sm text-slate-500">{stat.label}</p>
-                <p className="mt-2 text-2xl font-semibold text-slate-900">{stat.value}</p>
-              </div>
-            ))}
-          </div>
+          <button
+            onClick={() => navigate("/createcourses")}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 transition-all hover:scale-105 active:scale-95 self-start sm:self-auto"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Create New Course</span>
+          </button>
+        </div>
 
-          <div className="mt-8 grid gap-6 lg:grid-cols-2">
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-              <h2 className="text-lg font-semibold text-slate-900">Course lectures</h2>
-              <div className="mt-4 h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={courseProgressData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#dbe2ea" />
-                    <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 12 }} />
-                    <YAxis tick={{ fill: "#64748b", fontSize: 12 }} />
-                    <Tooltip />
-                    <Bar dataKey="lectures" fill="#111827" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+        {/* Analytics Overview Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
+          {/* Card 1 */}
+          <div className="p-6 rounded-3xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl shadow-xl flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                Total Courses
+              </p>
+              <h3 className="text-3xl font-black text-white">{totalCourses}</h3>
             </div>
-
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-              <h2 className="text-lg font-semibold text-slate-900">Student enrollment</h2>
-              <div className="mt-4 h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={enrollData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#dbe2ea" />
-                    <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 12 }} />
-                    <YAxis tick={{ fill: "#64748b", fontSize: 12 }} />
-                    <Tooltip />
-                    <Bar dataKey="enrolled" fill="#2563eb" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+              <BookOpen className="w-6 h-6" />
             </div>
           </div>
+
+          {/* Card 2 */}
+          <div className="p-6 rounded-3xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl shadow-xl flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                Enrolled Students
+              </p>
+              <h3 className="text-3xl font-black text-white">{totalStudents}</h3>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-violet-400">
+              <Users className="w-6 h-6" />
+            </div>
+          </div>
+
+          {/* Card 3 */}
+          <div className="p-6 rounded-3xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl shadow-xl flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                Published Content
+              </p>
+              <h3 className="text-3xl font-black text-white">{publishedCourses}</h3>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <Award className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
+
+        {/* Manage Courses Table */}
+        <div className="rounded-3xl border border-slate-800 bg-slate-900/40 backdrop-blur-md overflow-hidden shadow-2xl">
+          <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-indigo-400" />
+              <span>Your Course Management</span>
+            </h2>
+            <span className="text-xs text-slate-400">
+              {totalCourses} Courses total
+            </span>
+          </div>
+
+          {creatorCourseData.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-950/60 text-slate-400 uppercase text-xs tracking-wider border-b border-slate-800">
+                  <tr>
+                    <th className="p-4 pl-6">Course</th>
+                    <th className="p-4">Price</th>
+                    <th className="p-4">Students</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4 pr-6 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 text-slate-200">
+                  {creatorCourseData.map((course) => (
+                    <tr
+                      key={course._id}
+                      className="hover:bg-slate-800/30 transition-colors"
+                    >
+                      <td className="p-4 pl-6 font-semibold flex items-center gap-3">
+                        <img
+                          src={course.thumbnail || "https://placehold.co/100x60"}
+                          alt={course.title}
+                          className="w-12 h-8 rounded-lg object-cover bg-slate-800"
+                        />
+                        <span className="line-clamp-1">{course.title}</span>
+                      </td>
+                      <td className="p-4 font-bold text-white">
+                        ₹{course.price}
+                      </td>
+                      <td className="p-4 text-slate-400">
+                        {course.enrolledStudents?.length || 0}
+                      </td>
+                      <td className="p-4">
+                        {course.isPublished ? (
+                          <span className="inline-flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold px-2.5 py-1 rounded-full">
+                            Published
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold px-2.5 py-1 rounded-full">
+                            Draft
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-4 pr-6 text-right space-x-2">
+                        <button
+                          onClick={() => navigate(`/addcourses/${course._id}`)}
+                          className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-400 hover:text-indigo-300 transition-all inline-flex items-center gap-1 text-xs font-medium"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          onClick={() => navigate(`/viewcourse/${course._id}`)}
+                          className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all inline-flex items-center gap-1 text-xs font-medium"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>View</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="p-12 text-center text-slate-400 space-y-3">
+              <BookOpen className="w-10 h-10 text-slate-700 mx-auto" />
+              <p className="text-sm font-medium">You haven't created any courses yet.</p>
+              <button
+                onClick={() => navigate("/createcourses")}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold shadow-md"
+              >
+                Create First Course
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,251 +1,141 @@
+import React, { useState } from "react";
 import axios from "axios";
-import React, { useEffect, useState } from "react";
-import { FaArrowLeft, FaEdit } from "react-icons/fa";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { ArrowLeft, Video, Upload, Sparkles } from "lucide-react";
 import { serverUrl } from "../../App";
-import { ClipLoader } from "react-spinners";
-import { useDispatch, useSelector } from "react-redux";
-import { setLectureData } from "../../redux/lectureSlice";
+import Nav from "../../component/Nav";
 
 function CreateLecture() {
-
-  const navigate = useNavigate();
   const { courseId } = useParams();
+  const navigate = useNavigate();
 
   const [lectureTitle, setLectureTitle] = useState("");
+  const [video, setVideo] = useState(null);
+  const [isPreviewFree, setIsPreviewFree] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const dispatch = useDispatch();
-
-  const { lectureData } = useSelector(
-    (state) => state.lecture
-  );
-
-
-  // CREATE LECTURE
-  const createLectureHandler = async () => {
-
-    if (!lectureTitle.trim()) {
-      toast.error("Lecture title is required");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!lectureTitle.trim() || !video) {
+      toast.error("Please provide both a title and a video file");
       return;
     }
 
-
     setLoading(true);
+    const formData = new FormData();
+    formData.append("lectureTitle", lectureTitle);
+    formData.append("video", video);
+    formData.append("isPreviewFree", isPreviewFree);
 
     try {
-
       const { data } = await axios.post(
-        `${serverUrl}/api/lecture/course/${courseId}`,
+        `${serverUrl}/api/lecture/add/${courseId}`,
+        formData,
         {
-          lectureTitle
-        },
-        {
+          headers: { "Content-Type": "multipart/form-data" },
           withCredentials: true,
         }
       );
 
-
-      dispatch(
-        setLectureData([
-          ...lectureData,
-          data.lecture
-        ])
-      );
-
-
-      toast.success("Lecture Created Successfully");
-
-      setLectureTitle("");
-
-
+      if (data.success) {
+        toast.success("Lecture added successfully!");
+        navigate(`/addcourses/${courseId}`);
+      }
     } catch (error) {
-
-      console.log(error);
-
-      toast.error(
-        error.response?.data?.message ||
-        "Failed to create lecture"
-      );
-
+      toast.error(error.response?.data?.message || "Failed to add lecture");
     } finally {
-
       setLoading(false);
-
     }
-
   };
 
-
-
-  // GET COURSE LECTURES
-  useEffect(() => {
-
-
-    const getLecture = async () => {
-
-      try {
-
-        const { data } = await axios.get(
-          `${serverUrl}/api/lecture/course/${courseId}`,
-          {
-            withCredentials: true,
-          }
-        );
-
-
-        dispatch(
-          setLectureData(data.lectures)
-        );
-
-
-      } catch (error) {
-
-        console.log(error);
-
-        toast.error(
-          error.response?.data?.message ||
-          "Failed to load lectures"
-        );
-
-      }
-
-    };
-
-
-    if(courseId){
-      getLecture();
-    }
-
-
-  }, [courseId, dispatch]);
-
-
-
   return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
+      <Nav />
 
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="max-w-3xl mx-auto pt-24 pb-20 px-4 sm:px-6">
+        <button
+          onClick={() => navigate(`/addcourses/${courseId}`)}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white transition-colors mb-6 group"
+        >
+          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+          <span>Back to Course Editor</span>
+        </button>
 
-      <div className="bg-white shadow-xl rounded-xl w-full max-w-2xl p-6">
+        <div className="p-8 rounded-3xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl shadow-2xl">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
+              <Video className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black text-white">
+                Add New Lecture
+              </h1>
+              <p className="text-slate-400 text-xs mt-0.5">
+                Upload a video file and configure module permissions.
+              </p>
+            </div>
+          </div>
 
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                Lecture Title
+              </label>
+              <input
+                type="text"
+                value={lectureTitle}
+                onChange={(e) => setLectureTitle(e.target.value)}
+                placeholder="e.g. Module 1: Introduction to Variables"
+                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3.5 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 transition-all"
+                required
+              />
+            </div>
 
-        {/* Header */}
-
-        <div className="mb-6">
-
-          <h1 className="text-2xl font-semibold text-gray-800 mb-1">
-            Let’s Add a Lecture
-          </h1>
-
-          <p className="text-sm text-gray-500">
-            Enter the title and add your video lectures to enhance your course content.
-          </p>
-
-        </div>
-
-
-
-        {/* Input */}
-
-        <input
-          type="text"
-          placeholder="e.g. Introduction to MERN Stack"
-          className="w-full border border-gray-300 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 mb-4"
-          onChange={(e)=>setLectureTitle(e.target.value)}
-          value={lectureTitle}
-        />
-
-
-
-        {/* Buttons */}
-
-        <div className="flex gap-4 mb-6">
-
-
-          <button
-            className="flex items-center gap-2 px-4 py-2 rounded-md bg-gray-200 hover:bg-gray-300 text-sm font-medium"
-            onClick={() =>
-              navigate(`/addcourses/${courseId}`)
-            }
-          >
-
-            <FaArrowLeft />
-
-            Back to Course
-
-          </button>
-
-
-
-          <button
-            className="px-5 py-2 rounded-md bg-black text-white hover:bg-gray-600 transition-all text-sm font-medium shadow"
-            disabled={loading}
-            onClick={createLectureHandler}
-          >
-
-            {
-              loading ?
-              <ClipLoader size={25} color="white"/>
-              :
-              "+ Create Lecture"
-            }
-
-
-          </button>
-
-
-        </div>
-
-
-
-        {/* Lecture List */}
-
-
-        <div className="space-y-2">
-
-
-          {
-            lectureData?.map((lecture,index)=>(
-
-              <div
-                key={lecture._id || index}
-                className="bg-gray-100 rounded-md flex justify-between items-center p-3 text-sm font-medium text-gray-700"
-              >
-
-
-                <span>
-                  Lecture - {index+1}: {lecture.lectureTitle}
-                </span>
-
-
-
-                <FaEdit
-                  className="text-gray-500 hover:text-gray-700 cursor-pointer"
-                  onClick={() =>
-                    navigate(
-                      `/editlecture/${courseId}/${lecture._id}`
-                    )
-                  }
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                Video File
+              </label>
+              <div className="relative p-6 border-2 border-dashed border-slate-800 rounded-2xl bg-slate-950/60 text-center hover:border-indigo-500/50 transition-all cursor-pointer">
+                <Upload className="w-8 h-8 text-slate-500 mx-auto mb-2" />
+                <p className="text-xs text-slate-300 font-medium">
+                  {video ? video.name : "Click to select or drop video file (MP4, WEBM)"}
+                </p>
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => setVideo(e.target.files[0])}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  required
                 />
-
-
               </div>
+            </div>
 
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="preview"
+                checked={isPreviewFree}
+                onChange={(e) => setIsPreviewFree(e.target.checked)}
+                className="w-4 h-4 accent-indigo-500 rounded"
+              />
+              <label htmlFor="preview" className="text-sm text-slate-300 font-medium cursor-pointer">
+                Allow as Free Preview (non-enrolled students can watch)
+              </label>
+            </div>
 
-            ))
-          }
-
-
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+            >
+              {loading ? "Uploading Video..." : "Upload & Save Lecture"}
+            </button>
+          </form>
         </div>
-
-
       </div>
-
     </div>
-
   );
 }
-
 
 export default CreateLecture;

@@ -1,126 +1,126 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import axios from "axios";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { serverUrl } from "../App";
 import { toast } from "react-toastify";
+import { ArrowLeft, User, Upload, Camera } from "lucide-react";
 import { setUserData } from "../redux/userSlice";
-import { ClipLoader } from "react-spinners";
-import { FaArrowLeftLong } from "react-icons/fa6";
+import { serverUrl } from "../App";
+import Nav from "../component/Nav";
 
 function EditProfile() {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { userData } = useSelector((state) => state.user);
 
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [photoUrl, setPhotoUrl] = useState(null);
+  const [name, setName] = useState(userData?.name || "");
+  const [photo, setPhoto] = useState(null);
+  const [preview, setPreview] = useState(userData?.photoUrl || "");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (userData) {
-      setName(userData.name || "");
-      setDescription(userData.description || "");
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPhoto(file);
+      setPreview(URL.createObjectURL(file));
     }
-  }, [userData]);
+  };
 
-  const updateProfile = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const formData = new FormData();
+    formData.append("name", name);
+    if (photo) {
+      formData.append("photo", photo);
+    }
+
     try {
-      setLoading(true);
-
-      const formData = new FormData();
-      formData.append("name", name);
-      formData.append("description", description);
-
-      if (photoUrl) {
-        formData.append("photoUrl", photoUrl);
-      }
-
-      const result = await axios.post(
-        serverUrl + "/api/user/updateprofile",
+      const { data } = await axios.put(
+        `${serverUrl}/api/user/profile`,
         formData,
         {
+          headers: { "Content-Type": "multipart/form-data" },
           withCredentials: true,
         }
       );
 
-      dispatch(setUserData(result.data));
-      toast.success("Profile updated successfully");
-      navigate("/profile");
+      if (data.success) {
+        toast.success("Profile updated successfully!");
+        dispatch(setUserData(data.user));
+        navigate("/profile");
+      }
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Profile update failed");
+      toast.error(error.response?.data?.message || "Profile update failed");
     } finally {
       setLoading(false);
     }
   };
 
-  if (!userData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-xl font-semibold">
-        Loading...
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-100 px-4 py-10 flex items-center justify-center">
-      <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-lg p-8">
-        <FaArrowLeftLong
-          className="absolute top-6 left-6 w-6 h-6 cursor-pointer hover:scale-110 transition"
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
+      <Nav />
+
+      <div className="max-w-2xl mx-auto pt-24 pb-20 px-4 sm:px-6">
+        <button
           onClick={() => navigate("/profile")}
-        />
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white transition-colors mb-6 group"
+        >
+          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+          <span>Back to Profile</span>
+        </button>
 
-        <h1 className="text-2xl font-bold text-center mb-6">Edit Profile</h1>
+        <div className="p-8 sm:p-10 rounded-3xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl shadow-2xl space-y-6">
+          <h1 className="text-2xl font-black text-white">Edit Profile</h1>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold mb-2">Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black"
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            
+            {/* Avatar Upload */}
+            <div className="flex flex-col items-center justify-center space-y-3">
+              <div className="relative group">
+                <img
+                  src={preview || "https://avatar.iran.liara.run/public"}
+                  alt="Profile Avatar"
+                  className="w-28 h-28 rounded-full object-cover border-4 border-indigo-500/40 shadow-xl"
+                />
+                <label className="absolute inset-0 bg-slate-950/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                  <Camera className="w-6 h-6 text-white" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              <p className="text-xs text-slate-400 font-medium">
+                Click photo to change avatar
+              </p>
+            </div>
 
-          <div>
-            <label className="block text-sm font-semibold mb-2">Bio</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black"
-            />
-          </div>
+            {/* Name Input */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                Full Name
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 transition-all"
+                required
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-semibold mb-2">Photo</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setPhotoUrl(e.target.files?.[0] || null)}
-              className="w-full"
-            />
-          </div>
-
-          <div className="flex items-center justify-between gap-4">
             <button
-              type="button"
-              onClick={() => navigate("/profile")}
-              className="px-6 py-3 border border-black rounded-lg hover:bg-gray-100 transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
+              type="submit"
               disabled={loading}
-              onClick={updateProfile}
-              className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
             >
-              {loading ? <ClipLoader size={18} color="white" /> : "Save"}
+              {loading ? "Saving Changes..." : "Save Profile Settings"}
             </button>
-          </div>
+          </form>
         </div>
       </div>
     </div>
