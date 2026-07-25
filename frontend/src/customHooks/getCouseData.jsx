@@ -1,59 +1,44 @@
 import { useEffect } from "react";
 import axios from "axios";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { serverUrl } from "../App";
 import { setCourseData } from "../redux/courseSlice";
 
 const useGetCourseData = () => {
-
   const dispatch = useDispatch();
-
+  const { userData } = useSelector((state) => state.user);
 
   useEffect(() => {
-
-    const getAllPublishedCourses = async () => {
-
+    const getCourses = async () => {
       try {
+        let endpoint = `${serverUrl}/api/course/published`;
 
-        const { data } = await axios.get(
-          `${serverUrl}/api/course/published`,
-          {
-            withCredentials: true,
-          }
-        );
-
-
-        console.log("Published Courses API:", data);
-
-
-        if (data.success) {
-
-          dispatch(
-            setCourseData(data.courses)
-          );
-
+        // Educators should see all of their own courses
+        if (userData?.role === "educator") {
+          endpoint = `${serverUrl}/api/course/creator/courses`;
         }
 
+        const { data } = await axios.get(endpoint, {
+          withCredentials: true,
+        });
 
+        if (data.success) {
+          dispatch(
+            setCourseData(data.courses || [])
+          );
+        }
       } catch (error) {
-
-        console.log(
+        console.error(
           "Get Course Error:",
           error.response?.data || error
         );
 
+        dispatch(setCourseData([]));
       }
-
     };
 
-
-    getAllPublishedCourses();
-
-
-  }, [dispatch]);
-
-
+    getCourses();
+  }, [dispatch, userData]);
 };
-
 
 export default useGetCourseData;
