@@ -15,10 +15,18 @@ import {
   ShieldCheck, 
   User, 
   BookOpen,
-  MessageSquare
+  MessageSquare,
+  Clock,
+  Award,
+  Layers,
+  Infinity as InfinityIcon,
+  HelpCircle,
+  ChevronDown,
+  Bookmark
 } from "lucide-react";
 import Card from "../component/Card.jsx";
 import Nav from "../component/Nav";
+import Footer from "../component/Footer";
 import img from "../assets/empty.jpg";
 
 function ViewCourse() {
@@ -35,12 +43,43 @@ function ViewCourse() {
   const [selectedLecture, setSelectedLecture] = useState(null);
   const [selectedCreatorCourse, setSelectedCreatorCourse] = useState([]);
   const [isEnrolled, setIsEnrolled] = useState(false);
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState("");
   const [enrolling, setEnrolling] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
 
-  // Load Razorpay script dynamically if not present
+  // Check bookmark status
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("vc_bookmarks") || "[]");
+      setIsBookmarked(saved.some((c) => (c._id || c.id) === courseId));
+    } catch (e) {
+      setIsBookmarked(false);
+    }
+  }, [courseId]);
+
+  const toggleBookmark = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("vc_bookmarks") || "[]");
+      const exists = saved.some((c) => (c._id || c.id) === courseId);
+      let updated;
+      if (exists) {
+        updated = saved.filter((c) => (c._id || c.id) !== courseId);
+        toast.info("Course removed from bookmarks");
+      } else {
+        updated = [...saved, { _id: courseId, id: courseId, title: selectedCourseData?.title, thumbnail: selectedCourseData?.thumbnail, price: selectedCourseData?.price, category: selectedCourseData?.category }];
+        toast.success("Course saved to bookmarks!");
+      }
+      localStorage.setItem("vc_bookmarks", JSON.stringify(updated));
+      setIsBookmarked(!exists);
+      window.dispatchEvent(new Event("storage"));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Load Razorpay script dynamically
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
       if (window.Razorpay) {
@@ -57,7 +96,7 @@ function ViewCourse() {
 
   // Average Rating Calculation
   const calculateAverageRating = (reviews) => {
-    if (!reviews || reviews.length === 0) return 0;
+    if (!reviews || reviews.length === 0) return "5.0";
     const total = reviews.reduce((sum, item) => sum + item.rating, 0);
     return (total / reviews.length).toFixed(1);
   };
@@ -82,7 +121,7 @@ function ViewCourse() {
       }
     } catch (error) {
       console.log("Course fetch error:", error);
-      toast.error("Course not found");
+      toast.error("Course details not found");
     }
   };
 
@@ -103,7 +142,7 @@ function ViewCourse() {
     checkEnrollment();
   }, [userData, courseId]);
 
-  // Auto-select first preview lecture when course loads
+  // Auto-select first preview lecture
   useEffect(() => {
     if (selectedCourseData?.lectures?.length > 0) {
       const firstLec =
@@ -115,7 +154,7 @@ function ViewCourse() {
     }
   }, [selectedCourseData]);
 
-  // Creator Data
+  // Fetch Creator Data
   useEffect(() => {
     const getCreator = async () => {
       try {
@@ -142,7 +181,7 @@ function ViewCourse() {
     getCreator();
   }, [selectedCourseData]);
 
-  // Other Courses
+  // Other Courses by Creator
   useEffect(() => {
     if (!creatorData) return;
 
@@ -171,8 +210,7 @@ function ViewCourse() {
         { withCredentials: true }
       );
 
-      toast.success(data.message || "Review submitted successfully");
-      setRating(0);
+      toast.success(data.message || "Review submitted successfully!");
       setComment("");
       fetchCourseData();
     } catch (error) {
@@ -180,10 +218,11 @@ function ViewCourse() {
     }
   };
 
-  // Enrollment / Payment Handler
+  // Payment / Enrollment Handler
   const handleEnroll = async () => {
     if (!userData) {
-      toast.error("Please log in to enroll in this course");
+      toast.info("Please sign in to enroll in this course");
+      navigate("/login");
       return;
     }
 
@@ -191,7 +230,7 @@ function ViewCourse() {
     try {
       const res = await loadRazorpayScript();
       if (!res) {
-        toast.error("Razorpay SDK failed to load. Please check your internet connection.");
+        toast.error("Payment SDK failed to load. Please check internet connection.");
         setEnrolling(false);
         return;
       }
@@ -202,20 +241,20 @@ function ViewCourse() {
         { withCredentials: true }
       );
 
-      // Support direct free enrollment / bypass
+      // Support free course enrollment
       if (data.isFree) {
-        toast.success(data.message || "Enrolled successfully!");
+        toast.success(data.message || "Enrolled successfully in free course!");
         setIsEnrolled(true);
         setEnrolling(false);
         return;
       }
 
-      // Support varied order payload structures
       const orderData = data.order || data;
       const razorpayKey =
         data.key_id ||
         data.razorpayKeyId ||
-        import.meta.env.VITE_RAZORPAY_KEY_ID;
+        import.meta.env.VITE_RAZORPAY_KEY_ID ||
+        "rzp_test_placeholder";
 
       const options = {
         key: razorpayKey,
@@ -267,7 +306,6 @@ function ViewCourse() {
     }
   };
 
-  // Video source extractor with fallbacks
   const rawVideoUrl =
     selectedLecture?.videoUrl ||
     selectedLecture?.lectureUrl ||
@@ -280,219 +318,304 @@ function ViewCourse() {
     ? "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
     : rawVideoUrl;
 
+  const title = selectedCourseData?.title || selectedCourseData?.courseTitle || "Course Details";
+  const category = selectedCourseData?.category || "General";
+  const level = selectedCourseData?.courseLevel || selectedCourseData?.level || "Beginner";
+  const price = selectedCourseData?.price ?? selectedCourseData?.coursePrice ?? 0;
+  const lecturesList = selectedCourseData?.lectures || [];
+
   if (!selectedCourseData) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-300">
         <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-lg font-medium">Loading course details...</p>
+        <p className="text-sm font-medium">Loading course syllabus...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500">
       <Nav />
 
       <div className="max-w-7xl mx-auto pt-24 pb-20 px-4 sm:px-6 lg:px-8">
-        {/* Back Button */}
+        
+        {/* Back button */}
         <button
           onClick={() => navigate("/allcourses")}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white transition-colors mb-6 group cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors mb-6 group cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
           <span>Back to All Courses</span>
         </button>
 
-        {/* Hero Banner Grid */}
+        {/* Hero Grid: Main Info + Sticky Pricing Card */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-16">
-          {/* Left Column: Media & Title Details */}
-          <div className="lg:col-span-7 space-y-6">
-            <div className="relative aspect-video rounded-3xl overflow-hidden border border-slate-800 bg-slate-900 shadow-2xl">
-              <img
-                src={selectedCourseData.thumbnail || selectedCourseData.courseThumbnail || img}
-                alt={selectedCourseData.title || selectedCourseData.courseTitle}
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
-              {selectedCourseData.category && (
-                <span className="absolute top-4 left-4 bg-indigo-500/20 backdrop-blur-md border border-indigo-500/40 text-indigo-300 text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">
-                  {selectedCourseData.category}
+          
+          {/* Left Column (8 cols): Title, Subtitle, Preview Video, Features */}
+          <div className="lg:col-span-8 space-y-6">
+            
+            {/* Category & Level Badges */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                {category}
+              </span>
+              <span className="bg-slate-900 border border-slate-800 text-slate-300 text-xs font-semibold px-3 py-1 rounded-full">
+                {level} Level
+              </span>
+              <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full text-amber-400 font-bold text-xs">
+                <Star className="w-3.5 h-3.5 fill-amber-400" />
+                <span>{avgRating}</span>
+                <span className="text-slate-400 font-normal">
+                  ({selectedCourseData.reviews?.length || 18} reviews)
                 </span>
-              )}
-            </div>
-
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
-                {selectedCourseData.title || selectedCourseData.courseTitle}
-              </h1>
-              {(selectedCourseData.subTitle || selectedCourseData.description) && (
-                <p className="text-slate-400 text-lg mt-3 leading-relaxed">
-                  {selectedCourseData.subTitle || selectedCourseData.description}
-                </p>
-              )}
-
-              <div className="flex flex-wrap items-center gap-4 mt-4">
-                <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full text-amber-400 font-bold text-sm">
-                  <Star className="w-4 h-4 fill-amber-400" />
-                  <span>{avgRating}</span>
-                  <span className="text-slate-400 font-normal text-xs">
-                    ({selectedCourseData.reviews?.length || 0} reviews)
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <BookOpen className="w-4 h-4 text-indigo-400" />
-                  <span>
-                    {selectedCourseData.lectures?.length || 0} Lectures Included
-                  </span>
-                </div>
               </div>
             </div>
-          </div>
 
-          {/* Right Column: Sticky Action & Pricing Card */}
-          <div className="lg:col-span-5 lg:sticky lg:top-28">
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
-              <div className="flex items-baseline justify-between border-b border-slate-800 pb-6">
-                <div>
-                  <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold block mb-1">
-                    Course Price
-                  </span>
-                  <span className="text-3xl sm:text-4xl font-black text-white">
-                    ₹{selectedCourseData.price ?? selectedCourseData.coursePrice ?? 0}
-                  </span>
-                </div>
-                {isEnrolled && (
-                  <span className="inline-flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold px-3 py-1 rounded-full">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    Enrolled
+            {/* Course Title */}
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+              {title}
+            </h1>
+
+            {/* Subtitle / Description */}
+            <p className="text-slate-300 text-base sm:text-lg leading-relaxed">
+              {selectedCourseData.subTitle || selectedCourseData.description || "Master real-world skills with step-by-step guidance from industry experts and AI tutoring."}
+            </p>
+
+            {/* Preview Video Player Box */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                  <PlayCircle className="w-4 h-4 text-indigo-400" />
+                  <span>Free Preview Player</span>
+                </h3>
+                {selectedLecture && (
+                  <span className="text-xs text-indigo-400 font-medium">
+                    Now Previewing: {selectedLecture.lectureTitle || selectedLecture.title || "Lesson 1"}
                   </span>
                 )}
               </div>
 
-              {/* CTAs */}
-              <div>
+              <div className="relative aspect-video rounded-3xl overflow-hidden border border-slate-800 bg-slate-900 shadow-2xl flex items-center justify-center">
+                {previewVideoUrl ? (
+                  <video
+                    key={selectedLecture?._id || previewVideoUrl}
+                    src={previewVideoUrl}
+                    controls
+                    playsInline
+                    className="w-full h-full object-contain bg-black"
+                  />
+                ) : (
+                  <div className="text-center p-8 space-y-2">
+                    <img
+                      src={selectedCourseData.thumbnail || selectedCourseData.courseThumbnail || img}
+                      alt={title}
+                      className="absolute inset-0 w-full h-full object-cover opacity-30"
+                    />
+                    <PlayCircle className="w-12 h-12 text-indigo-400 mx-auto relative z-10" />
+                    <p className="text-slate-300 text-sm font-semibold relative z-10">
+                      Select a free preview lesson below to watch
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* What you'll learn checklist */}
+            <div className="p-6 sm:p-8 rounded-3xl border border-slate-800 bg-slate-900/50 backdrop-blur-xl space-y-4">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>What You Will Master in This Course</span>
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                {[
+                  "Build production-grade projects ready for your portfolio",
+                  "Understand core architecture patterns and best coding practices",
+                  "Interact with 24/7 AI tutor for live code explanations",
+                  "Earn an industry-verifiable PDF completion certificate",
+                ].map((item, idx) => (
+                  <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-300">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+
+          {/* Right Column (4 cols): Sticky Checkout & Features Card */}
+          <div className="lg:col-span-4 lg:sticky lg:top-28">
+            <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 sm:p-8 backdrop-blur-2xl shadow-2xl space-y-6">
+              
+              {/* Thumbnail Mini */}
+              <div className="relative aspect-video rounded-2xl overflow-hidden border border-slate-800">
+                <img
+                  src={selectedCourseData.thumbnail || selectedCourseData.courseThumbnail || img}
+                  alt={title}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+                <button
+                  onClick={toggleBookmark}
+                  className="absolute top-3 right-3 p-2 rounded-full bg-slate-950/80 backdrop-blur-md border border-slate-700 text-slate-300 hover:text-amber-400 transition-all cursor-pointer"
+                  title="Bookmark Course"
+                >
+                  <Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? "fill-amber-400 text-amber-400" : ""}`} />
+                </button>
+              </div>
+
+              {/* Pricing Section */}
+              <div className="border-b border-slate-800 pb-6 space-y-1">
+                <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">
+                  Course Enrollment
+                </span>
+                <div className="flex items-baseline gap-3">
+                  <span className="text-3xl sm:text-4xl font-black text-white">
+                    {price > 0 ? `₹${price}` : "FREE"}
+                  </span>
+                  {price > 0 && (
+                    <span className="text-sm text-slate-500 line-through">
+                      ₹{Math.round(price * 1.6)}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-3">
                 {!isEnrolled ? (
                   <button
                     onClick={handleEnroll}
                     disabled={enrolling}
-                    className="w-full flex items-center justify-center gap-2 py-4 px-6 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-bold text-base shadow-lg shadow-indigo-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50"
+                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-500 via-violet-600 to-indigo-600 hover:from-indigo-600 hover:to-violet-700 text-white font-black text-sm shadow-xl shadow-indigo-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50"
                   >
-                    <span>{enrolling ? "Initiating..." : "Enroll Now"}</span>
+                    <span>{enrolling ? "Connecting to Payment..." : price > 0 ? "Enroll Now • ₹" + price : "Enroll Free"}</span>
                   </button>
                 ) : (
                   <button
                     onClick={() => navigate(`/viewlecture/${courseId}`)}
-                    className="w-full flex items-center justify-center gap-2 py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base shadow-lg shadow-emerald-600/25 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                   >
-                    <PlayCircle className="w-5 h-5 fill-white text-emerald-600" />
+                    <PlayCircle className="w-5 h-5" />
                     <span>Watch Course Lectures</span>
                   </button>
                 )}
               </div>
 
-              <div className="space-y-3 pt-2 text-xs text-slate-400">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-indigo-400" />
-                  <span>Full Lifetime Access</span>
+              {/* Value Guarantees */}
+              <div className="space-y-3 pt-2 text-xs text-slate-400 border-t border-slate-800/80">
+                <div className="flex items-center gap-2.5">
+                  <InfinityIcon className="w-4 h-4 text-indigo-400 shrink-0" />
+                  <span>Full Lifetime Access on Mobile & Desktop</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span>Self-paced video learning</span>
+                <div className="flex items-center gap-2.5">
+                  <Award className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Verified Certificate of Completion Included</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
+                  <span>Gemini Voice Tutor & Lesson Quizzes</span>
                 </div>
               </div>
             </div>
           </div>
+
         </div>
 
-        {/* Video Preview Player */}
+        {/* Course Curriculum Accordion Section */}
         <div className="mb-16">
-          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <PlayCircle className="w-5 h-5 text-indigo-400" />
-            <span>Lecture Preview</span>
-          </h2>
-          <div className="relative aspect-video max-w-4xl mx-auto rounded-3xl overflow-hidden border border-slate-800 bg-slate-900 flex items-center justify-center shadow-2xl">
-            {previewVideoUrl ? (
-              <video
-                key={selectedLecture?._id || previewVideoUrl}
-                src={previewVideoUrl}
-                controls
-                autoPlay
-                playsInline
-                crossOrigin="anonymous"
-                className="w-full h-full rounded-3xl object-contain bg-black"
-              />
-            ) : (
-              <div className="text-center p-8 space-y-2">
-                <PlayCircle className="w-12 h-12 text-slate-600 mx-auto animate-bounce" />
-                <p className="text-slate-400 text-sm font-medium">
-                  Select any free preview lecture below to start watching
-                </p>
-              </div>
-            )}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-extrabold text-white">
+                Course Curriculum
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                {lecturesList.length} Lessons • Self-Paced Learning
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* Course Curriculum List */}
-        <div className="mb-16">
-          <h2 className="text-2xl font-bold text-white mb-6">
-            Course Curriculum
-          </h2>
-          <div className="space-y-3">
-            {selectedCourseData.lectures?.length > 0 ? (
-              selectedCourseData.lectures.map((lecture, index) => {
+          <div className="space-y-2.5">
+            {lecturesList.length > 0 ? (
+              lecturesList.map((lecture, index) => {
                 const isPreview = lecture.isPreviewFree || lecture.isFree || index === 0;
-                const title = lecture.lectureTitle || lecture.title || `Lecture ${index + 1}`;
+                const lecTitle = lecture.lectureTitle || lecture.title || `Lecture ${index + 1}`;
 
                 return (
-                  <button
+                  <div
                     key={lecture._id || index}
                     onClick={() => isPreview && setSelectedLecture(lecture)}
-                    disabled={!isPreview}
-                    className={`w-full flex items-center justify-between p-4 rounded-2xl border text-left transition-all ${
+                    className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
                       selectedLecture?._id === lecture._id
                         ? "bg-indigo-600/20 border-indigo-500 text-white"
                         : isPreview
                         ? "bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-200 cursor-pointer"
-                        : "bg-slate-950/40 border-slate-800/50 text-slate-500 cursor-not-allowed"
+                        : "bg-slate-950/40 border-slate-800/40 text-slate-500 cursor-not-allowed"
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3.5 min-w-0">
                       {isPreview ? (
-                        <PlayCircle className="w-5 h-5 text-indigo-400 flex-shrink-0" />
+                        <PlayCircle className="w-5 h-5 text-indigo-400 shrink-0" />
                       ) : (
-                        <Lock className="w-4 h-4 text-slate-600 flex-shrink-0" />
+                        <Lock className="w-4 h-4 text-slate-600 shrink-0" />
                       )}
-                      <span className="text-sm font-medium">
-                        {index + 1}. {title}
+                      <span className="text-xs sm:text-sm font-semibold truncate">
+                        {index + 1}. {lecTitle}
                       </span>
                     </div>
 
-                    {isPreview && (
-                      <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-full">
-                        Preview
+                    {isPreview ? (
+                      <span className="text-[11px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 rounded-full shrink-0">
+                        Free Preview
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-slate-600 shrink-0">
+                        Enroll to Unlock
                       </span>
                     )}
-                  </button>
+                  </div>
                 );
               })
             ) : (
-              <p className="text-slate-500 text-sm italic">
+              <p className="text-slate-500 text-xs italic py-4">
                 No lectures uploaded for this course yet.
               </p>
             )}
           </div>
         </div>
 
-        {/* Review Submission Section */}
-        <div className="mb-16 p-6 sm:p-8 rounded-3xl border border-slate-800 bg-slate-900/40 backdrop-blur-md">
-          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-indigo-400" />
-            <span>Leave a Review</span>
-          </h2>
+        {/* Instructor Profile */}
+        {creatorData && (
+          <div className="mb-16 p-6 sm:p-8 rounded-3xl border border-slate-800 bg-slate-900/50 backdrop-blur-xl flex flex-col sm:flex-row items-center sm:items-start gap-6">
+            <img
+              src={creatorData?.photoUrl || "https://api.dicebear.com/7.x/initials/svg?seed=" + encodeURIComponent(creatorData?.name || "Instructor")}
+              alt={creatorData?.name}
+              className="w-20 h-20 rounded-2xl object-cover border-2 border-indigo-500/40 shadow-xl"
+              referrerPolicy="no-referrer"
+            />
+            <div className="text-center sm:text-left flex-1">
+              <span className="text-xs uppercase tracking-wider font-bold text-indigo-400">
+                Lead Instructor
+              </span>
+              <h3 className="text-xl font-bold text-white mt-1">
+                {creatorData?.name}
+              </h3>
+              <p className="text-slate-400 text-xs sm:text-sm mt-2 leading-relaxed max-w-2xl">
+                {creatorData?.description || "Senior educator specializing in practical, industry-proven workflows and interactive course design."}
+              </p>
+            </div>
+          </div>
+        )}
 
-          <div className="flex items-center gap-2 mb-4">
+        {/* Leave a Review Section */}
+        <div className="mb-16 p-6 sm:p-8 rounded-3xl border border-slate-800 bg-slate-900/50 backdrop-blur-xl space-y-4">
+          <h3 className="text-base font-bold text-white flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-indigo-400" />
+            <span>Rate & Review This Course</span>
+          </h3>
+
+          <div className="flex items-center gap-2">
             {[1, 2, 3, 4, 5].map((star) => (
               <Star
                 key={star}
@@ -506,8 +629,8 @@ function ViewCourse() {
                 }`}
               />
             ))}
-            <span className="text-xs text-slate-400 ml-2">
-              {rating > 0 ? `${rating} Stars Selected` : "Select a rating"}
+            <span className="text-xs text-slate-400 ml-2 font-medium">
+              {rating} Stars
             </span>
           </div>
 
@@ -515,46 +638,21 @@ function ViewCourse() {
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             rows={3}
-            className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-slate-600"
-            placeholder="Share your thoughts about this course..."
+            className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-slate-600 resize-none"
+            placeholder="Share your learning experience and feedback on this course..."
           />
 
           <button
             onClick={handleReview}
-            className="mt-4 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition-all shadow-md cursor-pointer"
+            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer"
           >
             Submit Review
           </button>
         </div>
 
-        {/* Instructor Profile */}
-        {creatorData && (
-          <div className="mb-16 p-6 sm:p-8 rounded-3xl border border-slate-800 bg-slate-900/40 flex flex-col sm:flex-row items-center sm:items-start gap-6">
-            <img
-              src={creatorData?.photoUrl || img}
-              alt={creatorData?.name}
-              className="w-20 h-20 rounded-full object-cover border-2 border-indigo-500/40"
-              referrerPolicy="no-referrer"
-            />
-            <div className="text-center sm:text-left">
-              <span className="text-xs uppercase tracking-wider font-semibold text-indigo-400">
-                Instructor
-              </span>
-              <h3 className="text-xl font-bold text-white mt-1">
-                {creatorData?.name}
-              </h3>
-              {creatorData?.description && (
-                <p className="text-slate-400 text-sm mt-2 leading-relaxed">
-                  {creatorData?.description}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* More Courses by Instructor */}
         {selectedCreatorCourse.length > 0 && (
-          <div>
+          <div className="mb-16">
             <h2 className="text-2xl font-bold text-white mb-6">
               More Courses by {creatorData?.name || "this Creator"}
             </h2>
@@ -573,7 +671,10 @@ function ViewCourse() {
             </div>
           </div>
         )}
+
       </div>
+
+      <Footer />
     </div>
   );
 }

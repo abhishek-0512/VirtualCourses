@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { serverUrl } from "../../App";
 import Nav from "../../component/Nav";
+import Footer from "../../component/Footer";
 
 function CreateCourse() {
   const navigate = useNavigate();
@@ -29,7 +30,6 @@ function CreateCourse() {
 
   const [loading, setLoading] = useState(false);
 
-  // Categories list
   const categories = [
     "Web Development",
     "Data Science & AI",
@@ -37,9 +37,10 @@ function CreateCourse() {
     "UI/UX Design",
     "Cloud Computing",
     "Cybersecurity",
+    "AI & Machine Learning",
+    "Data Analytics"
   ];
 
-  // Handle image file selection
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -48,11 +49,10 @@ function CreateCourse() {
     }
   };
 
-  // Submit Handler: POST /api/course/create
   const handleCreateCourse = async (e) => {
     e.preventDefault();
 
-    if (!courseTitle || !category || !coursePrice) {
+    if (!courseTitle || !category || coursePrice === "") {
       return toast.error("Please fill in all required fields");
     }
 
@@ -92,16 +92,16 @@ function CreateCourse() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500">
       <Nav />
 
       <div className="max-w-4xl mx-auto pt-24 pb-20 px-4 sm:px-6">
         <button
           onClick={() => navigate("/dashboard")}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white transition-colors mb-6 group"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors mb-6 group cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-          <span>Back to Dashboard</span>
+          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
+          <span>Back to Studio Dashboard</span>
         </button>
 
         <div className="p-8 sm:p-10 rounded-3xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl shadow-2xl space-y-8">
@@ -112,7 +112,7 @@ function CreateCourse() {
             <div>
               <h1 className="text-2xl font-black text-white">Create New Course</h1>
               <p className="text-xs text-slate-400">
-                Set up basic course information before adding curriculum lectures.
+                Set up course details before uploading curriculum videos.
               </p>
             </div>
           </div>
@@ -122,7 +122,7 @@ function CreateCourse() {
             <div className="grid grid-cols-1 gap-6">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                  Course Title <span className="text-red-400">*</span>
+                  Course Title <span className="text-rose-400">*</span>
                 </label>
                 <input
                   type="text"
@@ -136,13 +136,13 @@ function CreateCourse() {
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                  Subtitle / Short Summary
+                  Subtitle / Summary Headline
                 </label>
                 <input
                   type="text"
                   value={subTitle}
                   onChange={(e) => setSubTitle(e.target.value)}
-                  placeholder="e.g. Master React, Node.js, and MongoDB by building real apps."
+                  placeholder="e.g. Master React, Node.js, and MongoDB with practical projects."
                   className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 transition-all"
                 />
               </div>
@@ -157,8 +157,8 @@ function CreateCourse() {
                 rows="4"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="What students will learn in this course..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 transition-all resize-none"
+                placeholder="Describe what skills students will gain and prerequisites..."
+                className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 transition-all resize-none"
               />
             </div>
 
@@ -166,7 +166,7 @@ function CreateCourse() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
-                  <Tag className="w-3.5 h-3.5 text-indigo-400" /> Category <span className="text-red-400">*</span>
+                  <Tag className="w-3.5 h-3.5 text-indigo-400" /> Category <span className="text-rose-400">*</span>
                 </label>
                 <select
                   value={category}
@@ -200,15 +200,14 @@ function CreateCourse() {
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
-                  <DollarSign className="w-3.5 h-3.5 text-indigo-400" /> Price ($) <span className="text-red-400">*</span>
+                  <DollarSign className="w-3.5 h-3.5 text-indigo-400" /> Price (₹ INR) <span className="text-rose-400">*</span>
                 </label>
                 <input
                   type="number"
                   min="0"
-                  step="0.01"
                   value={coursePrice}
                   onChange={(e) => setCoursePrice(e.target.value)}
-                  placeholder="89.99"
+                  placeholder="e.g. 499 (0 for free)"
                   className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 transition-all"
                   required
                 />
@@ -218,7 +217,7 @@ function CreateCourse() {
             {/* Thumbnail Upload */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
-                <ImageIcon className="w-3.5 h-3.5 text-indigo-400" /> Course Thumbnail
+                <ImageIcon className="w-3.5 h-3.5 text-indigo-400" /> Course Thumbnail Image
               </label>
 
               <div className="flex flex-col sm:flex-row items-center gap-6 p-4 rounded-2xl bg-slate-950 border border-slate-800">
@@ -226,10 +225,10 @@ function CreateCourse() {
                   <img
                     src={previewImage}
                     alt="Course Preview"
-                    className="w-32 h-20 object-cover rounded-xl border border-slate-800"
+                    className="w-36 h-20 object-cover rounded-xl border border-slate-800 shadow-md"
                   />
                 ) : (
-                  <div className="w-32 h-20 rounded-xl bg-slate-900 border border-dashed border-slate-800 flex items-center justify-center text-slate-600">
+                  <div className="w-36 h-20 rounded-xl bg-slate-900 border border-dashed border-slate-800 flex items-center justify-center text-slate-600">
                     <ImageIcon className="w-8 h-8 stroke-1" />
                   </div>
                 )}
@@ -239,10 +238,10 @@ function CreateCourse() {
                     type="file"
                     accept="image/*"
                     onChange={handleImageChange}
-                    className="w-full text-xs text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer"
+                    className="w-full text-xs text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer"
                   />
                   <p className="text-[10px] text-slate-500">
-                    Recommended aspect ratio: 16:9 (e.g. 1280x720px)
+                    16:9 ratio recommended (e.g. 1280x720px)
                   </p>
                 </div>
               </div>
@@ -252,14 +251,16 @@ function CreateCourse() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-8"
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-8 cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
-              {loading ? "Creating Course Shell..." : "Create Course & Continue to Curriculum"}
+              {loading ? "Creating Course..." : "Create Course & Continue to Curriculum"}
             </button>
           </form>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

@@ -9,7 +9,8 @@ import {
   Lock, 
   User, 
   BookOpen, 
-  Presentation 
+  Presentation,
+  Loader2 
 } from "lucide-react";
 import { setUserData } from "../redux/userSlice";
 import { serverUrl } from "../App";
@@ -29,7 +30,6 @@ function SignUp() {
     setLoading(true);
 
     try {
-      // Endpoint updated to /api/auth/signup to match backend authRoute.js
       const { data } = await axios.post(
         `${serverUrl}/api/auth/signup`,
         { name, email, password, role },
@@ -57,16 +57,16 @@ function SignUp() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 font-sans selection:bg-indigo-500">
       <div className="w-full max-w-md p-8 sm:p-10 rounded-3xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl shadow-2xl space-y-6">
         
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white shadow-lg shadow-indigo-500/25 mb-2">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/25 mb-2">
             <GraduationCap className="w-6 h-6" />
           </div>
           <h1 className="text-2xl font-black text-white">Create an Account</h1>
           <p className="text-xs text-slate-400">
-            Join thousands of students and creators on EduVerse.
+            Join thousands of students and creators on Virtual Courses.
           </p>
         </div>
 
@@ -130,26 +130,26 @@ function SignUp() {
               <button
                 type="button"
                 onClick={() => setRole("student")}
-                className={`flex items-center justify-center gap-2 p-3 rounded-2xl border text-xs font-bold transition-all ${
+                className={`flex items-center justify-center gap-2 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
                   role === "student"
-                    ? "bg-indigo-600/20 border-indigo-500 text-white shadow-md"
+                    ? "bg-indigo-600 text-white border-indigo-500 shadow-md"
                     : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
                 }`}
               >
-                <BookOpen className="w-4 h-4 text-indigo-400" />
+                <BookOpen className="w-4 h-4" />
                 <span>Student</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setRole("educator")}
-                className={`flex items-center justify-center gap-2 p-3 rounded-2xl border text-xs font-bold transition-all ${
+                className={`flex items-center justify-center gap-2 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
                   role === "educator"
-                    ? "bg-indigo-600/20 border-indigo-500 text-white shadow-md"
+                    ? "bg-indigo-600 text-white border-indigo-500 shadow-md"
                     : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
                 }`}
               >
-                <Presentation className="w-4 h-4 text-indigo-400" />
+                <Presentation className="w-4 h-4" />
                 <span>Educator</span>
               </button>
             </div>
@@ -158,16 +158,16 @@ function SignUp() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 mt-2"
+            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 mt-2 flex items-center justify-center gap-2 cursor-pointer"
           >
-            {loading ? "Creating Account..." : "Sign Up"}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create Account"}
           </button>
         </form>
 
         <p className="text-center text-xs text-slate-400 pt-2">
           Already have an account?{" "}
           <Link to="/login" className="text-indigo-400 font-semibold hover:underline">
-            Log in
+            Sign in
           </Link>
         </p>
       </div>

@@ -3,10 +3,11 @@ import axios from "axios";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { ArrowLeft, Camera } from "lucide-react";
+import { ArrowLeft, Camera, User, Sparkles } from "lucide-react";
 import { setUserData } from "../redux/userSlice";
 import { serverUrl } from "../App";
 import Nav from "../component/Nav";
+import Footer from "../component/Footer";
 
 function EditProfile() {
   const navigate = useNavigate();
@@ -45,7 +46,6 @@ function EditProfile() {
     }
 
     try {
-      // Fixed: Updated path to match backend userRouter (/api/user/updateprofile)
       const { data } = await axios.put(
         `${serverUrl}/api/user/updateprofile`,
         formData,
@@ -71,36 +71,42 @@ function EditProfile() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500">
       <Nav />
 
-      <div className="max-w-2xl mx-auto pt-24 pb-20 px-4 sm:px-6">
+      <div className="max-w-xl mx-auto pt-24 pb-20 px-4 sm:px-6">
         <button
           onClick={() => navigate("/profile")}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white transition-colors mb-6 group cursor-pointer"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors mb-6 group cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
           <span>Back to Profile</span>
         </button>
 
         <div className="p-8 sm:p-10 rounded-3xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl shadow-2xl space-y-6">
-          <h1 className="text-2xl font-black text-white">Edit Profile</h1>
+          <div className="space-y-1 border-b border-slate-800 pb-4">
+            <h1 className="text-2xl font-black text-white">Edit Profile</h1>
+            <p className="text-xs text-slate-400">
+              Update your display name and profile picture.
+            </p>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Avatar Upload */}
             <div className="flex flex-col items-center justify-center space-y-3">
-              <div className="relative group">
+              <div className="relative group cursor-pointer">
                 <img
                   src={preview}
                   alt="Profile Avatar"
-                  className="w-28 h-28 rounded-full object-cover border-4 border-indigo-500/40 shadow-xl"
+                  className="w-28 h-28 rounded-3xl object-cover border-4 border-indigo-500/40 shadow-2xl"
                   onError={(e) => {
                     e.target.onerror = null;
                     e.target.src = defaultAvatar;
                   }}
                 />
-                <label className="absolute inset-0 bg-slate-950/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                <label className="absolute inset-0 bg-slate-950/70 rounded-3xl flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
                   <Camera className="w-6 h-6 text-white" />
+                  <span className="text-[10px] text-slate-200 mt-1 font-bold">Change</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -109,22 +115,38 @@ function EditProfile() {
                   />
                 </label>
               </div>
-              <p className="text-xs text-slate-400 font-medium">
-                Click photo to change avatar
+              <p className="text-[11px] text-slate-400 font-medium">
+                Click photo to select image from your device
               </p>
             </div>
 
             {/* Name Input */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                Full Name
+                Full Display Name
+              </label>
+              <div className="relative">
+                <User className="w-4 h-4 text-slate-500 absolute left-4 top-3.5" />
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-11 pr-4 py-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 transition-all"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Email (Readonly info) */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                Registered Email Address
               </label>
               <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 transition-all"
-                required
+                type="email"
+                value={userData?.email || ""}
+                disabled
+                className="w-full bg-slate-950/50 border border-slate-800/60 rounded-2xl px-4 py-3 text-sm text-slate-500 cursor-not-allowed"
               />
             </div>
 
@@ -138,6 +160,8 @@ function EditProfile() {
           </form>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

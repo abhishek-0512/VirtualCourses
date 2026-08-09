@@ -1,9 +1,10 @@
 import React, { useEffect } from "react";
-import { FaEdit } from "react-icons/fa";
+import { Edit3, ArrowLeft, Plus, BookOpen, CheckCircle, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import img1 from "../assets/empty.jpg";
-import { FaArrowLeftLong } from "react-icons/fa6";
+import Nav from "../component/Nav";
+import Footer from "../component/Footer";
 
 function Courses() {
   const navigate = useNavigate();
@@ -14,52 +15,80 @@ function Courses() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(135deg,_#f8fafc_0%,_#eef2ff_100%)] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-6 flex flex-col gap-4 rounded-[28px] border border-slate-200 bg-white/90 p-6 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.18)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <FaArrowLeftLong className="h-5 w-5 cursor-pointer text-slate-700" onClick={() => navigate("/dashboard")} />
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500">
+      <Nav />
+
+      <div className="max-w-7xl mx-auto pt-24 pb-20 px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 shadow-2xl backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3.5">
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Course studio</p>
-              <h1 className="text-2xl font-semibold text-slate-900">Manage your courses</h1>
+              <p className="text-xs font-bold uppercase tracking-wider text-indigo-400">Creator Studio</p>
+              <h1 className="text-2xl font-black text-white">Manage Your Courses</h1>
             </div>
           </div>
 
-          <button className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800" onClick={() => navigate("/createcourses")}>
-            Create course
+          <button
+            className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 px-5 py-3 text-xs font-bold text-white shadow-lg shadow-indigo-500/25 transition-all hover:scale-105 active:scale-95 cursor-pointer self-start sm:self-auto"
+            onClick={() => navigate("/createcourses")}
+          >
+            <Plus className="w-4 h-4" />
+            <span>Create New Course</span>
           </button>
         </div>
 
-        <div className="hidden overflow-hidden rounded-[28px] border border-slate-200 bg-white/90 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.16)] md:block">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50">
+        {/* Desktop Table View */}
+        <div className="hidden overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/50 shadow-2xl backdrop-blur-xl md:block">
+          <table className="min-w-full text-xs text-left">
+            <thead className="bg-slate-950/60 text-slate-400 uppercase tracking-wider border-b border-slate-800">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">Course</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">Price</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">Action</th>
+                <th className="px-6 py-4 font-bold">Course Title</th>
+                <th className="px-6 py-4 font-bold">Price</th>
+                <th className="px-6 py-4 font-bold">Status</th>
+                <th className="px-6 py-4 text-right font-bold">Action</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-800/60 text-slate-200">
               {creatorCourseData?.map((course) => (
-                <tr key={course?._id} className="border-t border-slate-100 transition hover:bg-slate-50">
-                  <td className="flex items-center gap-4 px-4 py-4">
-                    {course?.thumbnail ? (
-                      <img src={course?.thumbnail} alt="" className="h-14 w-24 rounded-xl object-cover" />
+                <tr key={course?._id} className="transition hover:bg-slate-800/40">
+                  <td className="flex items-center gap-3.5 px-6 py-4 font-semibold">
+                    <img
+                      src={course?.thumbnail || course?.courseThumbnail || img1}
+                      alt=""
+                      className="h-12 w-20 rounded-xl object-cover border border-slate-800"
+                      referrerPolicy="no-referrer"
+                    />
+                    <span className="font-bold text-white max-w-sm truncate">{course?.title || course?.courseTitle}</span>
+                  </td>
+                  <td className="px-6 py-4 font-bold text-white">
+                    {course?.price ? `₹${course.price}` : "FREE"}
+                  </td>
+                  <td className="px-6 py-4">
+                    {course?.isPublished ? (
+                      <span className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                        <CheckCircle className="w-3 h-3" />
+                        <span>Published</span>
+                      </span>
                     ) : (
-                      <img src={img1} alt="" className="h-14 w-24 rounded-xl object-cover" />
+                      <span className="inline-flex items-center gap-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                        <Clock className="w-3 h-3" />
+                        <span>Draft</span>
+                      </span>
                     )}
-                    <span className="font-medium text-slate-800">{course?.title}</span>
                   </td>
-                  <td className="px-4 py-4 text-slate-700">₹{course?.price || "NA"}</td>
-                  <td className="px-4 py-4">
-                    <span className={`rounded-full px-3 py-1 text-xs font-medium ${course?.isPublished ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                      {course?.isPublished ? "Published" : "Draft"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <button className="rounded-full p-2 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900" onClick={() => navigate(`/addcourses/${course?._id}`)}>
-                      <FaEdit className="h-4 w-4" />
+                  <td className="px-6 py-4 text-right">
+                    <button
+                      className="p-2 rounded-xl bg-slate-800 text-indigo-400 hover:text-indigo-300 hover:bg-slate-700 transition cursor-pointer"
+                      onClick={() => navigate(`/addcourses/${course?._id}`)}
+                      title="Edit Course"
+                    >
+                      <Edit3 className="h-4 w-4" />
                     </button>
                   </td>
                 </tr>
@@ -68,36 +97,42 @@ function Courses() {
           </table>
         </div>
 
+        {/* Mobile List View */}
         <div className="space-y-4 md:hidden">
           {creatorCourseData?.map((course) => (
-            <div key={course?._id} className="rounded-[24px] border border-slate-200 bg-white/90 p-4 shadow-sm">
+            <div key={course?._id} className="rounded-3xl border border-slate-800 bg-slate-900/60 p-4 shadow-xl">
               <div className="flex items-center gap-3">
-                {course?.thumbnail ? (
-                  <img src={course?.thumbnail} alt="" className="h-16 w-16 rounded-xl object-cover" />
-                ) : (
-                  <img src={img1} alt="" className="h-16 w-16 rounded-xl object-cover" />
-                )}
-                <div className="flex-1">
-                  <h2 className="text-sm font-semibold text-slate-900">{course?.title}</h2>
-                  <p className="mt-1 text-sm text-slate-500">₹{course?.price || "NA"}</p>
+                <img
+                  src={course?.thumbnail || course?.courseThumbnail || img1}
+                  alt=""
+                  className="h-16 w-20 rounded-2xl object-cover border border-slate-800"
+                />
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-xs font-bold text-white truncate">{course?.title || course?.courseTitle}</h2>
+                  <p className="mt-1 text-xs font-black text-emerald-400">
+                    {course?.price ? `₹${course.price}` : "FREE"}
+                  </p>
                 </div>
-                <button className="rounded-full p-2 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900" onClick={() => navigate(`/addcourses/${course?._id}`)}>
-                  <FaEdit className="h-4 w-4" />
+                <button
+                  className="p-2 rounded-xl bg-slate-800 text-indigo-400 hover:text-white transition"
+                  onClick={() => navigate(`/addcourses/${course?._id}`)}
+                >
+                  <Edit3 className="h-4 w-4" />
                 </button>
               </div>
-              <span className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-medium ${course?.isPublished ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                {course?.isPublished ? "Published" : "Draft"}
-              </span>
             </div>
           ))}
         </div>
 
         {!creatorCourseData?.length && (
-          <div className="mt-6 rounded-[24px] border border-dashed border-slate-300 bg-white/70 p-10 text-center text-slate-500">
-            No courses yet. Create your first course to get started.
+          <div className="mt-8 rounded-3xl border border-dashed border-slate-800 bg-slate-900/30 p-12 text-center text-slate-500 space-y-3">
+            <BookOpen className="w-10 h-10 text-slate-700 mx-auto" />
+            <p className="text-xs font-semibold">No courses in studio yet. Create your first course to get started.</p>
           </div>
         )}
       </div>
+
+      <Footer />
     </div>
   );
 }
